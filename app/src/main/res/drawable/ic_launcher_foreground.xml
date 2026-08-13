@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Glass capsule -->
+    <path
+        android:pathData="M32,42 L76,42 A12,12 0 0,1 76,66 L32,66 A12,12 0 0,1 32,42 Z"
+        android:fillColor="#33FFFFFF"
+        android:strokeColor="#B3FFFFFF"
+        android:strokeWidth="2.5" />
+    <!-- Specular sweep -->
+    <path
+        android:pathData="M36,47 L70,47 A7,7 0 0,1 70,53 L36,53 A7,7 0 0,1 36,47 Z"
+        android:fillColor="#4DFFFFFF" />
+    <!-- Headline bars -->
+    <path android:pathData="M40,52.5 h20 v3 h-20 z" android:fillColor="#FFFFFFFF" />
+    <path android:pathData="M40,58 h28 v3 h-28 z" android:fillColor="#99FFFFFF" />
+</vector>
