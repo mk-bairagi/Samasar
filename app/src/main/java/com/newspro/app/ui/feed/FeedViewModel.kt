@@ -6,7 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.newspro.app.data.NewsRepository
 import com.newspro.app.data.RemoteNewsRepository
 import com.newspro.app.data.model.Feed
+import com.newspro.app.data.model.FeedFilter
 import com.newspro.app.data.model.FeedScope
+import com.newspro.app.data.model.FilterDto
 import com.newspro.app.data.model.Place
 import com.newspro.app.data.model.PlaceIndex
 import com.newspro.app.data.model.Story
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -37,10 +41,18 @@ data class FeedUiState(
      * to resolve against — and the list has to work offline.
      */
     val saved: List<Story> = emptyList(),
+    val filter: FeedFilter = FeedFilter(),
+    /** Most recently hidden story, offered back as an undo for a few seconds. */
+    val undoHidden: Story? = null,
 ) {
     val savedIds: Set<String> get() = saved.mapTo(mutableSetOf()) { it.id }
 
-    val stories: List<Story> get() = feed?.stories.orEmpty()
+    /** Everything the reader has not asked to hide. */
+    val stories: List<Story> get() = feed?.stories.orEmpty().filter { filter.allows(it) }
+
+    /** True when the feed is non-empty but the reader's own filters emptied it. */
+    val emptiedByFilter: Boolean
+        get() = stories.isEmpty() && feed?.stories?.isNotEmpty() == true
 
     /** The three scope tabs, in local → wide order. Missing feeds are dropped. */
     val tabs: List<Pair<FeedScope, String>>
@@ -79,6 +91,8 @@ class FeedViewModel @JvmOverloads constructor(
     private val repo: NewsRepository = RemoteNewsRepository(app),
 ) : AndroidViewModel(app) {
 
+    private var undoJob: Job? = null
+
     private val prefs = app.getSharedPreferences("newspro", android.content.Context.MODE_PRIVATE)
 
     private val _state = MutableStateFlow(
@@ -87,6 +101,7 @@ class FeedViewModel @JvmOverloads constructor(
             stateCode = prefs.getString(KEY_STATE, null),
             districtSlug = prefs.getString(KEY_DISTRICT, null),
             saved = readSaved(),
+            filter = readFilter(),
         )
     )
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
@@ -188,6 +203,82 @@ class FeedViewModel @JvmOverloads constructor(
         _state.value.stories.firstOrNull { it.id == id }
             ?: _state.value.saved.firstOrNull { it.id == id }
 
+    // ---------------------------------------------------------------- filters
+    fun hideStory(story: Story) {
+        updateFilter { it.copy(hiddenIds = it.hiddenIds + story.id, hiddenUrls = it.hiddenUrls + story.url) }
+        _state.update { it.copy(undoHidden = story) }
+        undoJob?.cancel()
+        undoJob = viewModelScope.launch {
+            delay(6_000)
+            _state.update { it.copy(undoHidden = null) }
+        }
+    }
+
+    fun undoHide() {
+        val story = _state.value.undoHidden ?: return
+        undoJob?.cancel()
+        updateFilter { it.copy(hiddenIds = it.hiddenIds - story.id, hiddenUrls = it.hiddenUrls - story.url) }
+        _state.update { it.copy(undoHidden = null) }
+    }
+
+    fun dismissUndo() {
+        undoJob?.cancel()
+        _state.update { it.copy(undoHidden = null) }
+    }
+
+    fun muteSource(name: String) {
+        if (name.isBlank()) return
+        updateFilter { it.copy(mutedSources = it.mutedSources + name) }
+    }
+
+    fun unmuteSource(name: String) = updateFilter { it.copy(mutedSources = it.mutedSources - name) }
+
+    fun muteKeyword(word: String) {
+        val clean = word.trim()
+        if (clean.length < 2) return
+        updateFilter { it.copy(mutedKeywords = it.mutedKeywords + clean) }
+    }
+
+    fun unmuteKeyword(word: String) = updateFilter { it.copy(mutedKeywords = it.mutedKeywords - word) }
+
+    fun clearHidden() = updateFilter { it.copy(hiddenIds = emptySet(), hiddenUrls = emptySet()) }
+
+    /** Every publisher seen in the current feed, so Profile can offer them for muting. */
+    fun knownSources(): List<String> {
+        val live = _state.value.feed?.stories.orEmpty()
+            .flatMap { s -> s.sources.map { it.name }.ifEmpty { listOf(s.source) } }
+        return (live + _state.value.filter.mutedSources).filter { it.isNotBlank() }.distinct().sorted()
+    }
+
+    private fun updateFilter(transform: (FeedFilter) -> FeedFilter) {
+        _state.update { current ->
+            val next = transform(current.filter)
+            writeFilter(next)
+            current.copy(filter = next)
+        }
+    }
+
+    private fun readFilter(): FeedFilter {
+        val raw = prefs.getString(KEY_FILTER, null) ?: return FeedFilter()
+        return runCatching {
+            val d = json.decodeFromString(FilterDto.serializer(), raw)
+            FeedFilter(d.hiddenIds.toSet(), d.hiddenUrls.toSet(), d.mutedSources.toSet(), d.mutedKeywords.toSet())
+        }.getOrDefault(FeedFilter())
+    }
+
+    private fun writeFilter(filter: FeedFilter) {
+        // Hidden ids are capped: stories age out of the feed within weeks, so an
+        // unbounded list would grow forever to suppress things that no longer exist.
+        val dto = FilterDto(
+            hiddenIds = filter.hiddenIds.toList().takeLast(500),
+            hiddenUrls = filter.hiddenUrls.toList().takeLast(500),
+            mutedSources = filter.mutedSources.toList(),
+            mutedKeywords = filter.mutedKeywords.toList(),
+        )
+        runCatching { json.encodeToString(FilterDto.serializer(), dto) }
+            .getOrNull()?.let { prefs.edit().putString(KEY_FILTER, it).apply() }
+    }
+
     private fun readSaved(): List<Story> {
         val raw = prefs.getString(KEY_SAVED, null) ?: return emptyList()
         return runCatching {
@@ -208,6 +299,7 @@ class FeedViewModel @JvmOverloads constructor(
         const val KEY_STATE = "state"
         const val KEY_DISTRICT = "district"
         const val KEY_SAVED = "saved_stories"
+        const val KEY_FILTER = "feed_filter"
         val json = Json { ignoreUnknownKeys = true }
     }
 }

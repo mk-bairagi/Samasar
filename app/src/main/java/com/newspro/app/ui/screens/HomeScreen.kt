@@ -26,6 +26,7 @@ import com.newspro.app.ui.components.HeroStoryCard
 import com.newspro.app.ui.components.NewsIcons
 import com.newspro.app.ui.components.SectionHeader
 import com.newspro.app.ui.components.StoryRow
+import com.newspro.app.ui.components.SwipeToHide
 import com.newspro.app.ui.glass.ChromeState
 import com.newspro.app.ui.glass.GlassButton
 import com.newspro.app.ui.theme.NewsTheme
@@ -43,6 +44,8 @@ fun HomeScreen(
     contentPadding: PaddingValues,
     onOpenStory: (String) -> Unit,
     onToggleSave: (String) -> Unit,
+    onHide: (Story) -> Unit,
+    onMore: (Story) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -134,14 +137,19 @@ fun HomeScreen(
                 )
             }
             items(more, key = { it.id }) { story ->
-                StoryRow(
-                    story = story,
-                    lang = lang,
-                    onClick = { onOpenStory(story.id) },
-                    saved = story.id in savedIds,
-                    onToggleSave = { onToggleSave(story.id) },
+                SwipeToHide(
+                    onHide = { onHide(story) },
                     modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                ) {
+                    StoryRow(
+                        story = story,
+                        lang = lang,
+                        onClick = { onOpenStory(story.id) },
+                        saved = story.id in savedIds,
+                        onToggleSave = { onToggleSave(story.id) },
+                        onMore = { onMore(story) },
+                    )
+                }
             }
         }
 
@@ -153,14 +161,19 @@ fun HomeScreen(
                 )
             }
             items(stateOverflow, key = { it.id }) { story ->
-                StoryRow(
-                    story = story,
-                    lang = lang,
-                    onClick = { onOpenStory(story.id) },
-                    saved = story.id in savedIds,
-                    onToggleSave = { onToggleSave(story.id) },
+                SwipeToHide(
+                    onHide = { onHide(story) },
                     modifier = Modifier.padding(horizontal = 16.dp),
-                )
+                ) {
+                    StoryRow(
+                        story = story,
+                        lang = lang,
+                        onClick = { onOpenStory(story.id) },
+                        saved = story.id in savedIds,
+                        onToggleSave = { onToggleSave(story.id) },
+                        onMore = { onMore(story) },
+                    )
+                }
             }
         }
     }

@@ -126,6 +126,19 @@ backend/       Ingestion pipeline (Python)
 Four tabs plus a story route. Scope tabs, district selection, search, saved stories and the theme
 toggle are all wired and functional.
 
+**Not interested** is handled three ways, all local to the device:
+
+- **Hide a story** — swipe it away, or use ⋯ on the row. An undo bar sits above the nav bar for a
+  few seconds, because hiding is otherwise silent and irreversible.
+- **Mute a publisher** — from the same ⋯ menu. A story is only hidden when *every* source carrying
+  it is muted; silencing one outlet should not cost a story three others also ran.
+- **Mute a keyword** — in Profile. The pipeline does not classify topics, so a keyword is both more
+  honest and more precise than a topic filter would be: mute a name, a tournament, a scandal.
+
+Hidden stories are recorded by id *and* URL. The id is the cluster root — the oldest article in the
+cluster — so when that ages out of the freshness window the id changes, and a story hidden yesterday
+would walk back into the feed. Everything muted is listed and reversible in Profile.
+
 ---
 
 ## Data

@@ -199,6 +199,7 @@ fun StoryRow(
     modifier: Modifier = Modifier,
     saved: Boolean = false,
     onToggleSave: (() -> Unit)? = null,
+    onMore: (() -> Unit)? = null,
 ) {
     val colors = NewsTheme.colors
     Row(
@@ -227,6 +228,21 @@ fun StoryRow(
                 overflow = TextOverflow.Ellipsis,
             )
             StoryMeta(story, lang, tint = colors.textTertiary)
+        }
+        if (onMore != null) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .pressBounce(pressedScale = 0.85f) { onMore() },
+                contentAlignment = Alignment.Center,
+            ) {
+                M3Icon(
+                    imageVector = NewsIcons.More,
+                    contentDescription = "More options",
+                    tint = colors.textTertiary,
+                    modifier = Modifier.size(17.dp),
+                )
+            }
         }
         if (onToggleSave != null) {
             val scale by animateFloatAsState(
@@ -417,4 +433,62 @@ fun SectionHeader(
             }
         }
     }
+}
+
+/**
+ * Swipe a story away to hide it.
+ *
+ * The gesture carries no visual weight until it is used, which keeps the feed calm,
+ * and it matches the spring language the rest of the app moves in. The [onMore]
+ * menu on each row covers anyone who never discovers the swipe.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeToHide(
+    onHide: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val colors = NewsTheme.colors
+    val state = androidx.compose.material3.rememberSwipeToDismissBoxState(
+        // Require a deliberate swipe; a thumb brushing past should not delete news.
+        positionalThreshold = { distance -> distance * 0.55f },
+    )
+
+    androidx.compose.material3.SwipeToDismissBox(
+        state = state,
+        modifier = modifier,
+        onDismiss = { onHide() },
+        backgroundContent = {
+            // Only visible while a swipe is actually in progress. Cards are
+            // translucent, so a permanently drawn background would show through
+            // every row as a pair of stray marks.
+            val dragging =
+                state.dismissDirection != androidx.compose.material3.SwipeToDismissBoxValue.Settled
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer { alpha = if (dragging) 1f else 0f }
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                repeat(2) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(horizontal = 16.dp),
+                    ) {
+                        M3Icon(
+                            imageVector = NewsIcons.Close,
+                            contentDescription = null,
+                            tint = colors.textTertiary,
+                            modifier = Modifier.size(17.dp),
+                        )
+                    }
+                }
+            }
+        },
+        content = { content() },
+    )
 }

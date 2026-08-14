@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +20,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -29,11 +34,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import com.newspro.app.data.model.FeedFilter
 import com.newspro.app.ui.components.NewsIcons
 import com.newspro.app.ui.components.SectionHeader
 import com.newspro.app.ui.components.contentSurface
 import com.newspro.app.ui.glass.ChromeState
+import com.newspro.app.ui.glass.GlassIconButton
+import com.newspro.app.ui.glass.GlassSearchField
 import com.newspro.app.ui.glass.GlassToggle
+import com.newspro.app.ui.glass.pressBounce
 import com.newspro.app.ui.glass.PillCorner
 import com.newspro.app.ui.glass.backdrop
 import com.newspro.app.ui.glass.rememberBackdrop
@@ -55,6 +64,13 @@ fun ProfileScreen(
     placeName: String,
     sourceCount: Int,
     preferences: List<Preference>,
+    filter: FeedFilter,
+    knownSources: List<String>,
+    onMuteSource: (String) -> Unit,
+    onUnmuteSource: (String) -> Unit,
+    onMuteKeyword: (String) -> Unit,
+    onUnmuteKeyword: (String) -> Unit,
+    onClearHidden: () -> Unit,
     chrome: ChromeState,
     contentPadding: PaddingValues,
     modifier: Modifier = Modifier,
@@ -137,7 +153,164 @@ fun ProfileScreen(
             )
         }
 
+        item(key = "muted-header") {
+            SectionHeader(
+                title = "Muted",
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+            )
+        }
+
+        item(key = "muted") {
+            MutedCard(
+                filter = filter,
+                knownSources = knownSources,
+                onMuteSource = onMuteSource,
+                onUnmuteSource = onUnmuteSource,
+                onMuteKeyword = onMuteKeyword,
+                onUnmuteKeyword = onUnmuteKeyword,
+                onClearHidden = onClearHidden,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+
         item(key = "tail") { Box(Modifier.height(8.dp)) }
+    }
+}
+
+/**
+ * Everything the reader has muted, and a way back out of it.
+ *
+ * Muting is only safe to offer if it is visibly reversible — otherwise a reader
+ * who mutes a publisher by accident quietly loses a chunk of their news and has
+ * no idea why.
+ */
+@Composable
+private fun MutedCard(
+    filter: FeedFilter,
+    knownSources: List<String>,
+    onMuteSource: (String) -> Unit,
+    onUnmuteSource: (String) -> Unit,
+    onMuteKeyword: (String) -> Unit,
+    onUnmuteKeyword: (String) -> Unit,
+    onClearHidden: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = NewsTheme.colors
+    var draft by rememberSaveable { mutableStateOf("") }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .contentSurface(26.dp)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "KEYWORDS",
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.textTertiary,
+            )
+            Text(
+                text = "Stories containing these words are hidden. More precise than any " +
+                    "topic filter — mute a name, a tournament, a scandal.",
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.textTertiary,
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                GlassSearchField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    placeholder = "Add a word to mute",
+                    modifier = Modifier.weight(1f),
+                )
+                GlassIconButton(
+                    icon = NewsIcons.Check,
+                    contentDescription = "Mute keyword",
+                    onClick = {
+                        onMuteKeyword(draft)
+                        draft = ""
+                    },
+                    diameter = 44.dp,
+                )
+            }
+            if (filter.mutedKeywords.isNotEmpty()) {
+                ChipFlow(filter.mutedKeywords.toList()) { onUnmuteKeyword(it) }
+            }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "SOURCES",
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.textTertiary,
+            )
+            if (filter.mutedSources.isEmpty()) {
+                Text(
+                    text = "No muted sources. Use ⋯ on any story to mute its publisher.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.textTertiary,
+                )
+            } else {
+                ChipFlow(filter.mutedSources.toList()) { onUnmuteSource(it) }
+            }
+        }
+
+        val hiddenCount = filter.hiddenUrls.size
+        if (hiddenCount > 0) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .pressBounce(pressedScale = 0.98f, onClick = onClearHidden),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = if (hiddenCount == 1) "1 hidden story" else "$hiddenCount hidden stories",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.textPrimary,
+                )
+                Text(
+                    text = "Restore all",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.accent,
+                )
+            }
+        }
+    }
+}
+
+/** Removable chips — tapping one un-mutes it. */
+@Composable
+private fun ChipFlow(items: List<String>, onRemove: (String) -> Unit) {
+    val colors = NewsTheme.colors
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        items.forEach { value ->
+            Row(
+                modifier = Modifier
+                    .pressBounce(pressedScale = 0.92f) { onRemove(value) }
+                    .clip(RoundedCornerShape(PillCorner))
+                    .background(colors.accent.copy(alpha = 0.18f))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+            ) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = colors.textPrimary,
+                )
+                M3Icon(
+                    imageVector = NewsIcons.Close,
+                    contentDescription = "Remove",
+                    tint = colors.textSecondary,
+                    modifier = Modifier.size(12.dp),
+                )
+            }
+        }
     }
 }
 

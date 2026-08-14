@@ -162,6 +162,13 @@ object NewsIcons {
         "M12 2.6 L13.9 9 L20.3 10.9 L13.9 12.8 L12 19.2 L10.1 12.8 L3.7 10.9 L10.1 9 Z",
     )
 
+    val More: ImageVector = filledIcon(
+        "More",
+        circlePath(5.2f, 12f, 1.85f),
+        circlePath(12f, 12f, 1.85f),
+        circlePath(18.8f, 12f, 1.85f),
+    )
+
     val Refresh: ImageVector = strokeIcon(
         "Refresh",
         "M20.6 12 A8.6 8.6 0 1 1 18.1 5.9",

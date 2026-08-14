@@ -49,6 +49,8 @@ import androidx.navigation.navArgument
 import com.newspro.app.data.model.FeedScope
 import com.newspro.app.ui.components.AmbientBackground
 import com.newspro.app.ui.components.NewsIcons
+import com.newspro.app.ui.components.StoryActionSheet
+import com.newspro.app.ui.components.UndoBar
 import com.newspro.app.ui.feed.FeedViewModel
 import com.newspro.app.ui.glass.ChromeState
 import com.newspro.app.ui.glass.GlassChip
@@ -128,6 +130,7 @@ private fun AppShell(
     val selectedTab = Tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
 
     var placeQuery by rememberSaveable { mutableStateOf("") }
+    var actionStory by remember { mutableStateOf<com.newspro.app.data.model.Story?>(null) }
     var notifications by rememberSaveable { mutableStateOf(true) }
     var autoplay by rememberSaveable { mutableStateOf(false) }
     var compact by rememberSaveable { mutableStateOf(false) }
@@ -173,6 +176,8 @@ private fun AppShell(
                         contentPadding = contentPadding,
                         onOpenStory = openStory,
                         onToggleSave = vm::toggleSaved,
+                        onHide = vm::hideStory,
+                        onMore = { actionStory = it },
                         onRetry = vm::retry,
                     )
                 }
@@ -245,6 +250,13 @@ private fun AppShell(
                                 onChange = { compact = it },
                             ),
                         ),
+                        filter = ui.filter,
+                        knownSources = vm.knownSources(),
+                        onMuteSource = vm::muteSource,
+                        onUnmuteSource = vm::unmuteSource,
+                        onMuteKeyword = vm::muteKeyword,
+                        onUnmuteKeyword = vm::unmuteKeyword,
+                        onClearHidden = vm::clearHidden,
                         chrome = chrome,
                         contentPadding = contentPadding,
                     )
@@ -378,6 +390,29 @@ private fun AppShell(
                 )
             }
         }
+
+        // Undo sits above the nav bar so a hidden story is always recoverable.
+        UndoBar(
+            story = ui.undoHidden,
+            backdrop = backdrop,
+            bottomPadding = bottomInset + 92.dp,
+            onUndo = vm::undoHide,
+            onDismiss = vm::dismissUndo,
+        )
+
+        StoryActionSheet(
+            story = actionStory,
+            backdrop = backdrop,
+            onDismiss = { actionStory = null },
+            onHide = {
+                vm.hideStory(it)
+                actionStory = null
+            },
+            onMuteSource = {
+                vm.muteSource(it)
+                actionStory = null
+            },
+        )
     }
 }
 
