@@ -1,0 +1,159 @@
+# Slug → display name.
+#
+# Feed slugs are whatever the publisher happened to use, which is not always what
+# the place is called. Amar Ujala still serves Prayagraj at /rss/allahabad.xml —
+# the city was renamed in 2018. Showing "Allahabad" to a Prayagraj reader, or
+# failing to match a search for "Prayagraj", is exactly the kind of detail that
+# makes a local app feel foreign. `aliases` feeds the search index so both names
+# resolve.
+
+states:
+  mp:
+    en: Madhya Pradesh
+    hi: मध्य प्रदेश
+    gu: મધ્ય પ્રદેશ
+  up:
+    en: Uttar Pradesh
+    hi: उत्तर प्रदेश
+    gu: ઉત્તર પ્રદેશ
+  gj:
+    en: Gujarat
+    hi: गुजरात
+    gu: ગુજરાત
+
+national:
+  en: India
+  hi: भारत
+  gu: ભારત
+
+districts:
+  mp:
+    agar-malwa:   { en: Agar Malwa,   hi: आगर मालवा }
+    anuppur:      { en: Anuppur,      hi: अनूपपुर }
+    ashoknagar:   { en: Ashoknagar,   hi: अशोकनगर }
+    balaghat:     { en: Balaghat,     hi: बालाघाट }
+    barwani:      { en: Barwani,      hi: बड़वानी }
+    betul:        { en: Betul,        hi: बैतूल }
+    bhind:        { en: Bhind,        hi: भिंड }
+    bhopal:       { en: Bhopal,       hi: भोपाल }
+    burhanpur:    { en: Burhanpur,    hi: बुरहानपुर }
+    chhatarpur:   { en: Chhatarpur,   hi: छतरपुर }
+    chhindwara:   { en: Chhindwara,   hi: छिंदवाड़ा }
+    damoh:        { en: Damoh,        hi: दमोह }
+    datia:        { en: Datia,        hi: दतिया }
+    dewas:        { en: Dewas,        hi: देवास }
+    dhar:         { en: Dhar,         hi: धार }
+    dindori:      { en: Dindori,      hi: डिंडोरी }
+    guna:         { en: Guna,         hi: गुना }
+    gwalior:      { en: Gwalior,      hi: ग्वालियर }
+    harda:        { en: Harda,        hi: हरदा }
+    indore:       { en: Indore,       hi: इंदौर }
+    jabalpur:     { en: Jabalpur,     hi: जबलपुर }
+    jhabua:       { en: Jhabua,       hi: झाबुआ }
+    katni:        { en: Katni,        hi: कटनी }
+    khandwa:      { en: Khandwa,      hi: खंडवा }
+    khargone:     { en: Khargone,     hi: खरगोन }
+    mandla:       { en: Mandla,       hi: मंडला }
+    mandsaur:     { en: Mandsaur,     hi: मंदसौर }
+    morena:       { en: Morena,       hi: मुरैना }
+    narmadapuram: { en: Narmadapuram, hi: नर्मदापुरम, aliases: [Hoshangabad, होशंगाबाद] }
+    narsinghpur:  { en: Narsinghpur,  hi: नरसिंहपुर }
+    neemuch:      { en: Neemuch,      hi: नीमच }
+    panna:        { en: Panna,        hi: पन्ना }
+    raisen:       { en: Raisen,       hi: रायसेन }
+    rajgarh:      { en: Rajgarh,      hi: राजगढ़ }
+    ratlam:       { en: Ratlam,       hi: रतलाम }
+    rewa:         { en: Rewa,         hi: रीवा }
+    sagar:        { en: Sagar,        hi: सागर }
+    satna:        { en: Satna,        hi: सतना }
+    sehore:       { en: Sehore,       hi: सीहोर }
+    seoni:        { en: Seoni,        hi: सिवनी }
+    shahdol:      { en: Shahdol,      hi: शहडोल }
+    shajapur:     { en: Shajapur,     hi: शाजापुर }
+    sheopur:      { en: Sheopur,      hi: श्योपुर }
+    shivpuri:     { en: Shivpuri,     hi: शिवपुरी }
+    sidhi:        { en: Sidhi,        hi: सीधी }
+    singrauli:    { en: Singrauli,    hi: सिंगरौली }
+    tikamgarh:    { en: Tikamgarh,    hi: टीकमगढ़ }
+    ujjain:       { en: Ujjain,       hi: उज्जैन }
+    umaria:       { en: Umaria,       hi: उमरिया }
+    vidisha:      { en: Vidisha,      hi: विदिशा }
+
+  up:
+    agra:             { en: Agra,             hi: आगरा }
+    aligarh:          { en: Aligarh,          hi: अलीगढ़ }
+    # The rename. Slug stays `allahabad` because that is what the publisher serves.
+    allahabad:        { en: Prayagraj,        hi: प्रयागराज, aliases: [Allahabad, इलाहाबाद] }
+    ambedkar-nagar:   { en: Ambedkar Nagar,   hi: अंबेडकर नगर }
+    amethi:           { en: Amethi,           hi: अमेठी }
+    amroha:           { en: Amroha,           hi: अमरोहा }
+    auraiya:          { en: Auraiya,          hi: औरैया }
+    ayodhya:          { en: Ayodhya,          hi: अयोध्या, aliases: [Faizabad, फैजाबाद] }
+    azamgarh:         { en: Azamgarh,         hi: आज़मगढ़ }
+    baghpat:          { en: Baghpat,          hi: बागपत }
+    bahraich:         { en: Bahraich,         hi: बहराइच }
+    ballia:           { en: Ballia,           hi: बलिया }
+    balrampur:        { en: Balrampur,        hi: बलरामपुर }
+    banda:            { en: Banda,            hi: बांदा }
+    barabanki:        { en: Barabanki,        hi: बाराबंकी }
+    bareilly:         { en: Bareilly,         hi: बरेली }
+    basti:            { en: Basti,            hi: बस्ती }
+    bijnor:           { en: Bijnor,           hi: बिजनौर }
+    budaun:           { en: Budaun,           hi: बदायूं }
+    bulandshahr:      { en: Bulandshahr,      hi: बुलंदशहर }
+    chandauli:        { en: Chandauli,        hi: चंदौली }
+    chitrakoot:       { en: Chitrakoot,       hi: चित्रकूट }
+    deoria:           { en: Deoria,           hi: देवरिया }
+    etah:             { en: Etah,             hi: एटा }
+    etawah:           { en: Etawah,           hi: इटावा }
+    farrukhabad:      { en: Farrukhabad,      hi: फर्रुखाबाद }
+    fatehpur:         { en: Fatehpur,         hi: फतेहपुर }
+    firozabad:        { en: Firozabad,        hi: फ़िरोज़ाबाद }
+    noida:            { en: Noida,            hi: नोएडा, aliases: [Gautam Buddha Nagar, गौतम बुद्ध नगर] }
+    ghaziabad:        { en: Ghaziabad,        hi: गाज़ियाबाद }
+    ghazipur:         { en: Ghazipur,         hi: गाज़ीपुर }
+    gonda:            { en: Gonda,            hi: गोंडा }
+    gorakhpur:        { en: Gorakhpur,        hi: गोरखपुर }
+    hamirpur:         { en: Hamirpur,         hi: हमीरपुर }
+    hapur:            { en: Hapur,            hi: हापुड़ }
+    hardoi:           { en: Hardoi,           hi: हरदोई }
+    hathras:          { en: Hathras,          hi: हाथरस }
+    jalaun:           { en: Jalaun,           hi: जालौन }
+    jaunpur:          { en: Jaunpur,          hi: जौनपुर }
+    jhansi:           { en: Jhansi,           hi: झांसी }
+    kannauj:          { en: Kannauj,          hi: कन्नौज }
+    kanpur:           { en: Kanpur,           hi: कानपुर }
+    kasganj:          { en: Kasganj,          hi: कासगंज }
+    kaushambi:        { en: Kaushambi,        hi: कौशांबी }
+    kushinagar:       { en: Kushinagar,       hi: कुशीनगर }
+    lakhimpur-kheri:  { en: Lakhimpur Kheri,  hi: लखीमपुर खीरी }
+    lalitpur:         { en: Lalitpur,         hi: ललितपुर }
+    lucknow:          { en: Lucknow,          hi: लखनऊ }
+    maharajganj:      { en: Maharajganj,      hi: महराजगंज }
+    mahoba:           { en: Mahoba,           hi: महोबा }
+    mainpuri:         { en: Mainpuri,         hi: मैनपुरी }
+    mathura:          { en: Mathura,          hi: मथुरा }
+    mau:              { en: Mau,              hi: मऊ }
+    meerut:           { en: Meerut,           hi: मेरठ }
+    mirzapur:         { en: Mirzapur,         hi: मिर्ज़ापुर }
+    moradabad:        { en: Moradabad,        hi: मुरादाबाद }
+    muzaffarnagar:    { en: Muzaffarnagar,    hi: मुज़फ्फरनगर }
+    pilibhit:         { en: Pilibhit,         hi: पीलीभीत }
+    pratapgarh:       { en: Pratapgarh,       hi: प्रतापगढ़ }
+    raebareli:        { en: Raebareli,        hi: रायबरेली }
+    rampur:           { en: Rampur,           hi: रामपुर }
+    saharanpur:       { en: Saharanpur,       hi: सहारनपुर }
+    sambhal:          { en: Sambhal,          hi: संभल }
+    sant-kabir-nagar: { en: Sant Kabir Nagar, hi: संत कबीर नगर }
+    shahjahanpur:     { en: Shahjahanpur,     hi: शाहजहांपुर }
+    shamli:           { en: Shamli,           hi: शामली }
+    shravasti:        { en: Shravasti,        hi: श्रावस्ती }
+    siddharthnagar:   { en: Siddharthnagar,   hi: सिद्धार्थनगर }
+    sitapur:          { en: Sitapur,          hi: सीतापुर }
+    sultanpur:        { en: Sultanpur,        hi: सुल्तानपुर }
+    unnao:            { en: Unnao,            hi: उन्नाव }
+    varanasi:         { en: Varanasi,         hi: वाराणसी, aliases: [Banaras, Kashi, बनारस, काशी] }
+
+  gj:
+    ahmedabad: { en: Ahmedabad, gu: અમદાવાદ, hi: अहमदाबाद }
+    surat:     { en: Surat,     gu: સુરત,   hi: सूरत }

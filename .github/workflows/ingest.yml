@@ -1,0 +1,105 @@
+name: Ingest news
+
+# Fully unattended. Nothing in this workflow waits for a human.
+#
+# Note on minutes: GitHub gives public repositories unlimited Actions minutes,
+# private ones 2,000/month. This schedule uses roughly 40–60 min/day, so the
+# pipeline needs to live in a PUBLIC repository. The Android app repo can stay
+# private — only this pipeline has to be public.
+on:
+  schedule:
+    # Every 15 minutes. GitHub's floor is 5, and scheduled runs are best-effort:
+    # under load they can drift 5–20 minutes late, which is fine for news.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Ignore per-tier poll intervals"
+        type: boolean
+        default: false
+
+concurrency:
+  # Never let a slow run overlap the next tick and double-fetch every publisher.
+  group: ingest
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -q -r requirements.txt
+
+      # The runner is ephemeral, so the article database has to be carried
+      # between runs. The cache is restored by prefix and saved under a unique
+      # key each run, which gives a rolling most-recent-wins behaviour.
+      # If it is ever evicted the pipeline simply refills from the feeds.
+      - name: Restore article database
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/data
+          key: newsdb-${{ github.run_id }}
+          restore-keys: newsdb-
+
+      - name: Ingest
+        working-directory: backend
+        run: python run.py ingest ${{ inputs.force && '--force' || '' }}
+
+      - name: Save article database
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: backend/data
+          key: newsdb-${{ github.run_id }}
+
+      # Precomputed feed JSON goes to a branch, which GitHub serves over its CDN
+      # for free. Swap this step for an R2 upload when you want a custom domain.
+      - name: Publish feed payloads
+        run: |
+          cd backend/public
+          git init -q
+          git config user.name "news-pro-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git checkout -q -b feeds
+          git add -A
+          git commit -q -m "feeds: $(date -u +%Y-%m-%dT%H:%MZ)" || exit 0
+          git push -f -q "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" feeds
+
+  doctor:
+    # Feed rot is constant — roughly 40% of plausible URLs were dead when this
+    # registry was first built. This re-verifies and repairs itself.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 3 * * 1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -q -r backend/requirements.txt
+      - name: Diagnose and repair feeds
+        working-directory: backend
+        run: python doctor.py repair --all-states
+      - name: Commit any repairs
+        run: |
+          if [[ -n "$(git status --porcelain backend/sources.yaml)" ]]; then
+            git config user.name "news-pro-bot"
+            git config user.email "bot@users.noreply.github.com"
+            git commit -q -m "doctor: repair feed URLs" backend/sources.yaml
+            git push -q
+          fi

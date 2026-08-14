@@ -28,3 +28,10 @@ captures/
 
 # macOS
 .DS_Store
+
+# Backend pipeline
+backend/data/
+backend/public/
+backend/.venv/
+__pycache__/
+*.pyc

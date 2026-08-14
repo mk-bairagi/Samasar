@@ -1,0 +1,126 @@
+# News Pro — source registry
+#
+# Every feed here was fetched and confirmed returning items on 2026-08-13.
+# The Feed Doctor job re-verifies on a schedule and self-heals broken URLs.
+#
+# scope: national | state | district      lang: en | hi | gu
+# ua_required: publisher 403s a bot UA, so send a browser User-Agent.
+
+defaults:
+  user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+  timeout_seconds: 15
+
+# District news moves slower than national. Tiering the poll interval cuts the
+# daily fetch count by roughly two thirds without anyone noticing a delay.
+poll_minutes:
+  national: 15
+  state: 20
+  district: 60
+
+# Which states are live in the app. Sources for the others stay registered and
+# verified, so switching one on is a config change and nothing more.
+active_states: [mp]
+
+feeds:
+  # ---------------------------------------------------------- ENGLISH NATIONAL
+  - { id: thehindu, name: "The Hindu",         url: "https://www.thehindu.com/news/national/feeder/default.rss",         lang: en, scope: national }
+  - { id: indianexpress, name: "The Indian Express",    url: "https://indianexpress.com/feed/",                                    lang: en, scope: national }
+  - { id: toi_top, name: "Times of India",          url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",         lang: en, scope: national }
+  - { id: toi_india, name: "Times of India",        url: "https://timesofindia.indiatimes.com/rssfeeds/-2128936835.cms",       lang: en, scope: national }
+  - { id: ndtv, name: "NDTV",             url: "https://feeds.feedburner.com/ndtvnews-top-stories",                  lang: en, scope: national }
+  - { id: hindustantimes, name: "Hindustan Times",   url: "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml",    lang: en, scope: national }
+  - { id: livemint, name: "Mint",         url: "https://www.livemint.com/rss/news",                                  lang: en, scope: national }
+  - { id: freepressjournal, name: "Free Press Journal", url: "https://www.freepressjournal.in/stories.rss",                         lang: en, scope: national }
+  - { id: businessstandard, name: "Business Standard", url: "https://www.business-standard.com/rss/home_page_top_stories.rss",     lang: en, scope: national, ua_required: true }
+  - { id: news18_india, name: "News18",     url: "https://www.news18.com/rss/india.xml",                               lang: en, scope: national, ua_required: true }
+  # Government press releases — a primary source, so it is exempt from the
+  # two-source corroboration rule in cluster.py.
+  - { id: pib_english, name: "PIB India",      url: "https://pib.gov.in/RssMain.aspx?ModId=6&Lang=1&Regid=3",             lang: en, scope: national, ua_required: true, primary_source: true }
+
+  # ---------------------------------------------------------- HINDI NATIONAL
+  - { id: amarujala_breaking, name: "अमर उजाला", url: "https://www.amarujala.com/rss/breaking-news.xml",   lang: hi, scope: national }
+  - { id: livehindustan, name: "लाइव हिन्दुस्तान",      url: "https://feed.livehindustan.com/rss/3127",           lang: hi, scope: national }
+  - { id: bhaskar_desh, name: "दैनिक भास्कर",       url: "https://www.bhaskar.com/rss-v1--category-1061.xml", lang: hi, scope: national }
+  - { id: aajtak, name: "आज तक",             url: "https://www.aajtak.in/rssfeeds/?id=home",           lang: hi, scope: national }
+  - { id: abplive_hindi, name: "एबीपी न्यूज़",      url: "https://www.abplive.com/home/feed",                 lang: hi, scope: national }
+  - { id: ndtv_india, name: "NDTV इंडिया",         url: "https://feeds.feedburner.com/ndtvkhabar-latest",    lang: hi, scope: national }
+  - { id: tv9_hindi, name: "TV9 भारतवर्ष",          url: "https://www.tv9hindi.com/feed",                     lang: hi, scope: national }
+
+  # ---------------------------------------------------------- STATE LEVEL
+  - { id: bhaskar_mp, name: "दैनिक भास्कर",   url: "https://www.bhaskar.com/rss-v1--category-1739.xml",                          lang: hi, scope: state, state: mp }
+  - { id: amarujala_mp, name: "अमर उजाला", url: "https://www.amarujala.com/rss/madhya-pradesh.xml",                            lang: hi, scope: state, state: mp }
+  - { id: patrika_mp, name: "पत्रिका",   url: "https://cms.patrika.com/googlefeed/blog/location/madhya-pradesh-news",        lang: hi, scope: state, state: mp }
+  - { id: amarujala_up, name: "अमर उजाला", url: "https://www.amarujala.com/rss/uttar-pradesh.xml",                             lang: hi, scope: state, state: up }
+  - { id: divyabhaskar_gujarat, name: "દિવ્ય ભાસ્કર", url: "https://www.divyabhaskar.co.in/rss-v1--category-1035.xml",            lang: gu, scope: state, state: gj }
+  - { id: news18_gujarati, name: "News18 ગુજરાતી",      url: "https://gujarati.news18.com/commonfeeds/v1/guj/rss/gujarat.xml",      lang: gu, scope: state, state: gj }
+  - { id: abp_asmita, name: "ABP અસ્મિતા",           url: "https://gujarati.abplive.com/home/feed",                              lang: gu, scope: state, state: gj }
+  - { id: tv9_gujarati, name: "TV9 ગુજરાતી",         url: "https://tv9gujarati.com/feed",                                        lang: gu, scope: state, state: gj }
+  - { id: patrika_gujarat, name: "પત્રિકા",      url: "https://cms.patrika.com/googlefeed/blog/location/gujarat-news",       lang: gu, scope: state, state: gj }
+  - { id: divyabhaskar_india, name: "દિવ્ય ભાસ્કર",   url: "https://www.divyabhaskar.co.in/rss-v1--category-1037.xml",            lang: gu, scope: national }
+
+# Expanded into one feed per district at load time.
+templates:
+  - id_prefix: au_mp
+    name: "अमर उजाला"
+    base: "https://www.amarujala.com/rss/{slug}.xml"
+    lang: hi
+    scope: district
+    state: mp
+    slugs: [agar-malwa, anuppur, ashoknagar, balaghat, barwani, betul, bhind, bhopal,
+            burhanpur, chhatarpur, chhindwara, damoh, datia, dewas, dhar, dindori, guna,
+            gwalior, harda, indore, jabalpur, jhabua, katni, khandwa, khargone, mandla,
+            mandsaur, morena, narmadapuram, narsinghpur, neemuch, panna, raisen, rajgarh,
+            ratlam, rewa, sagar, satna, sehore, seoni, shahdol, shajapur, sheopur,
+            shivpuri, sidhi, singrauli, tikamgarh, ujjain, umaria, vidisha]
+
+  - id_prefix: au_up
+    name: "अमर उजाला"
+    base: "https://www.amarujala.com/rss/{slug}.xml"
+    lang: hi
+    scope: district
+    state: up
+    slugs: [agra, aligarh, allahabad, ambedkar-nagar, amethi, amroha, auraiya, ayodhya,
+            azamgarh, baghpat, bahraich, ballia, balrampur, banda, barabanki, bareilly,
+            basti, bijnor, budaun, bulandshahr, chandauli, chitrakoot, deoria, etah,
+            etawah, farrukhabad, fatehpur, firozabad, noida, ghaziabad, ghazipur, gonda,
+            gorakhpur, hamirpur, hapur, hardoi, hathras, jalaun, jaunpur, jhansi, kannauj,
+            kanpur, kasganj, kaushambi, kushinagar, lakhimpur-kheri, lalitpur, lucknow,
+            maharajganj, mahoba, mainpuri, mathura, mau, meerut, mirzapur, moradabad,
+            muzaffarnagar, pilibhit, pratapgarh, raebareli, rampur, saharanpur, sambhal,
+            sant-kabir-nagar, shahjahanpur, shamli, shravasti, siddharthnagar, sitapur,
+            sultanpur, unnao, varanasi]
+
+  # Gujarat has no district-level RSS anywhere we could find. Divya Bhaskar
+  # publishes topic categories only, and Patrika covers just these two cities —
+  # Rajkot, Vadodara, Gandhinagar, Jamnagar, Bhavnagar and Junagadh all return
+  # empty. So Gujarat ships state-level; the Scout job hunts for local outlets.
+  - id_prefix: patrika_gj
+    name: "પત્રિકા"
+    base: "https://cms.patrika.com/googlefeed/blog/location/{slug}-news"
+    lang: gu
+    scope: district
+    state: gj
+    slugs: [ahmedabad, surat]
+
+  - id_prefix: patrika_mp
+    name: "पत्रिका"
+    base: "https://cms.patrika.com/googlefeed/blog/location/{slug}-news"
+    lang: hi
+    scope: district
+    state: mp
+    slugs: [bhopal, indore, gwalior, jabalpur, ujjain]
+
+# Kept so nobody re-adds these by guesswork. Checked 2026-08-13.
+known_bad:
+  - { id: jagran,          reason: "guessed RSS paths 404; articles appear via GDELT, so feed URL needs discovery" }
+  - { id: naidunia,        reason: "no RSS discoverable; major Indore daily — candidate for HTML extraction" }
+  - { id: navbharattimes,  reason: "rssfeedstopstories.cms 404 on the hindi subdomain" }
+  - { id: zeenews_hindi,   reason: "403 even with a browser UA" }
+  - { id: zee24kalak,      reason: "403 even with a browser UA" }
+  - { id: scroll,          reason: "200 but zero items" }
+  - { id: thewire,         reason: "200 but zero items" }
+  - { id: theprint,        reason: "200 but zero items" }
+  - { id: firstpost,       reason: "200 but zero items" }
+  - { id: deccanherald,    reason: "404 — feed path changed" }
+  - { id: sandesh,         reason: "200 but zero items (Gujarati)" }
+  - { id: gujaratsamachar, reason: "404 (Gujarati)" }
