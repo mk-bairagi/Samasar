@@ -119,6 +119,28 @@ templates:
             ratlam, rewa, sagar, satna, sehore, seoni, shahdol, shajapur, sheopur,
             shivpuri, sidhi, singrauli, tikamgarh, ujjain, umaria, vidisha]
 
+# Publishers with no feed at all, read from their listing page instead.
+#
+# Only for sources worth the fragility. Neemuch is the thinnest district in the
+# app — Amar Ujala's feed there holds 40 items spanning four months — and Neemuch
+# Today publishes genuinely local reporting daily. Their robots.txt states
+# `Allow: /` with `Content-Signal: search=yes, use=reference`, which is exactly
+# what this does: headline, link, attribution, and the reader sent to them.
+# robots.txt is re-checked on every run and a refusal skips the source.
+scrapers:
+  - id: neemuchtoday
+    name: "नीमच टुडे"
+    url: "https://neemuchtodaynews.com"
+    lang: hi
+    scope: district
+    state: mp
+    district: neemuch
+    link_pattern: "/singlepage/[0-9]+"
+    image_pattern: "/assets/news/"
+    date_selector: "span.date"
+    strip_suffixes: ["@NeemuchToday"]
+    min_title_length: 15
+
 # Kept so nobody re-adds these by guesswork. Checked 2026-08-13.
 known_bad:
   - { id: jagran,          reason: "guessed RSS paths 404; articles appear via GDELT, so feed URL needs discovery" }
@@ -133,3 +155,4 @@ known_bad:
   - { id: deccanherald,    reason: "404 — feed path changed" }
   - { id: sandesh,         reason: "200 but zero items (Gujarati)" }
   - { id: gujaratsamachar, reason: "404 (Gujarati)" }
+  - { id: apnaneemuch,     reason: "app-only publisher (Play: com.STS.ApnaNeemuch); the website is a 215-byte landing page. No feed and no web content — the only route would be their app's private API, which is not ours to use. Contact: apnaneemuch@gmail.com" }

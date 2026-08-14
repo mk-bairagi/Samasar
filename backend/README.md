@@ -162,6 +162,35 @@ Two things to know before enabling it:
 Feed payloads are pushed to a `feeds` branch and served over GitHub's CDN. Swap
 that step for an R2 upload when you want a custom domain.
 
+## Sites with no feed
+
+Some of the best hyperlocal reporting never gets an RSS feed. `scrape.py` reads a
+listing page instead, and `sources.yaml` carries the selectors under `scrapers:`.
+
+Only worth it where the gap is real. Neemuch was the thinnest district in the app —
+Amar Ujala's Neemuch feed holds 40 items spanning four months, so it yields about
+one story a week. Adding Neemuch Today took the district from **2 local stories to
+18**, all of it genuine local reporting.
+
+Three rules this obeys, and they are not optional:
+
+1. **robots.txt is checked before any request**, per host, and a disallow skips the
+   source. It fails closed: if the rules cannot be read, nothing is fetched.
+   Verified working — the gate permits `NewsProBot` and refuses `GPTBot`, `CCBot`
+   and `ClaudeBot` exactly as Neemuch Today's robots.txt specifies.
+2. **Headline and link only.** No article bodies are fetched or stored. The reader
+   goes to the publisher, which is the same deal every RSS source gets.
+3. **Honest User-Agent** carrying a contact URL. No pretending to be a browser to
+   get past bot protection — the moment you do that, "we are within their stated
+   terms" stops being true.
+
+Neemuch Today's robots.txt states `Allow: /` with
+`Content-Signal: search=yes, ai-train=no, use=reference`, which is exactly what
+this does.
+
+This is the most fragile part of the pipeline. A site redesign silently drops the
+source, and unlike a moved feed URL the Doctor cannot guess its way back.
+
 ## Adding a source
 
 Add a row to `sources.yaml` with `id`, `name`, `url`, `lang`, `scope` and — for

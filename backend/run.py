@@ -22,6 +22,8 @@ from pipeline.models import Article
 from pipeline.parse import parse_feed
 from pipeline.publish import Publisher
 from pipeline.registry import Registry
+from pipeline.robots import RobotsGate
+from pipeline.scrape import scrape_listing
 from pipeline.store import Store
 
 BASE = Path(__file__).resolve().parent
@@ -90,6 +92,32 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         store.record_poll(
             res.feed.id, ok=True, etag=res.etag, last_modified=res.last_modified, count=len(parsed)
         )
+
+    # ---- Sites with no feed, read from HTML and only where robots.txt allows.
+    scrapers = reg.scrapers(only_active=not args.all_states)
+    if scrapers and not args.no_scrape:
+        gate = RobotsGate(user_agent="NewsProBot", timeout=reg.timeout)
+        for feed, config in scrapers:
+            if not gate.allows(feed.url):
+                log.warning("  ⊘ %-26s robots.txt disallows — skipped", feed.id)
+                store.record_poll(feed.id, ok=False, error="robots.txt disallow")
+                continue
+            res = fetcher.fetch_one(feed)
+            if not res.ok:
+                failed += 1
+                log.warning("  ✗ %-26s %s", feed.id, res.error or f"HTTP {res.status}")
+                store.record_poll(feed.id, ok=False, error=res.error)
+                continue
+            try:
+                scraped = scrape_listing(feed, res.body, config)
+            except Exception as exc:  # noqa: BLE001
+                failed += 1
+                store.record_poll(feed.id, ok=False, error=f"scrape: {exc}"[:200])
+                continue
+            ok += 1
+            articles.extend(scraped)
+            store.record_poll(feed.id, ok=True, count=len(scraped))
+            log.info("  ⌁ %-26s scraped %d", feed.id, len(scraped))
 
     store.db.commit()
     log.info("fetched: %d ok, %d unchanged, %d failed → %d raw articles", ok, unchanged, failed, len(articles))
@@ -181,6 +209,7 @@ def main() -> int:
     ing.add_argument("--all-states", action="store_true", help="include states not yet live")
     ing.add_argument("--limit", type=int, default=0, help="cap feeds this run (testing)")
     ing.add_argument("--workers", type=int, default=12)
+    ing.add_argument("--no-scrape", action="store_true", help="skip HTML sources")
     ing.add_argument("--window-hours", type=int, default=36, help="national/state freshness window")
     ing.add_argument("--district-days", type=int, default=7, help="district freshness window")
     ing.add_argument("--retain-days", type=int, default=21)
