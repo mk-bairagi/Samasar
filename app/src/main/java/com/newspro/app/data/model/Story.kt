@@ -24,6 +24,12 @@ data class Story(
     val primarySource: Boolean,
     /** Whether this story may hold a headline slot — see the pipeline's corroboration rule. */
     val leadEligible: Boolean,
+    /**
+     * Which scope this story actually came from. A district feed is topped up
+     * with state coverage when the district is quiet, and that difference is
+     * shown rather than passed off as local news.
+     */
+    val origin: String,
     val sources: List<StorySource>,
 )
 

@@ -104,8 +104,17 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     added = store.upsert_articles(deduped)
     log.info("stored: %d new rows", added)
 
-    window = int(time.time()) - args.window_hours * 3600
-    pool = store.recent(window)
+    # Two windows, because the two kinds of feed move at completely different
+    # speeds. National feeds churn hourly, so 36h is generous. A district feed of
+    # 40 items can span weeks in a small place — judged on the national window,
+    # 35 of 50 MP districts produced nothing at all and vanished from the picker.
+    now = int(time.time())
+    national_cutoff = now - args.window_hours * 3600
+    district_cutoff = now - args.district_days * 86400
+    pool = [
+        a for a in store.recent(min(national_cutoff, district_cutoff))
+        if a.published_at >= (district_cutoff if a.scope == "district" else national_cutoff)
+    ]
     clusters = build_clusters(pool)
     multi = sum(1 for c in clusters if c.source_count > 1)
     log.info("clustered: %d articles → %d clusters (%d multi-source)", len(pool), len(clusters), multi)
@@ -119,8 +128,9 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         len(publishable), len(clusters) - len(publishable), leads,
     )
 
-    written = Publisher(reg, OUT_DIR).publish(clusters)
-    log.info("published: %d files → %s", len(written), OUT_DIR)
+    expected = reg.expected_districts(only_active=not args.all_states)
+    written = Publisher(reg, OUT_DIR).publish(clusters, expected_districts=expected)
+    log.info("published: %d files (%d districts guaranteed) → %s", len(written), len(expected), OUT_DIR)
 
     removed = store.prune(args.retain_days)
     if removed:
@@ -171,7 +181,8 @@ def main() -> int:
     ing.add_argument("--all-states", action="store_true", help="include states not yet live")
     ing.add_argument("--limit", type=int, default=0, help="cap feeds this run (testing)")
     ing.add_argument("--workers", type=int, default=12)
-    ing.add_argument("--window-hours", type=int, default=36)
+    ing.add_argument("--window-hours", type=int, default=36, help="national/state freshness window")
+    ing.add_argument("--district-days", type=int, default=7, help="district freshness window")
     ing.add_argument("--retain-days", type=int, default=21)
     ing.set_defaults(func=cmd_ingest)
 

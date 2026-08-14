@@ -91,3 +91,19 @@ class Registry:
 
     def districts_for(self, state: str) -> list[str]:
         return sorted(self._places.get("districts", {}).get(state, {}).keys())
+
+    def expected_districts(self, only_active: bool = True) -> list[tuple[str, str, str]]:
+        """Every (state, district, lang) that must get a payload.
+
+        Taken from the registry rather than from whatever happened to publish this
+        run. A district that goes quiet for a day must not disappear from the
+        picker — least of all under a reader who has already chosen it.
+        """
+        seen: list[tuple[str, str, str]] = []
+        for feed in self.feeds(only_active=only_active):
+            if feed.scope != "district" or not feed.state or not feed.district:
+                continue
+            key = (feed.state, feed.district, feed.lang)
+            if key not in seen:
+                seen.append(key)
+        return seen

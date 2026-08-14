@@ -20,6 +20,14 @@ from .registry import Registry
 
 HALF_LIFE_HOURS = 10.0
 
+# Below this, a district feed is topped up with state coverage rather than shown
+# nearly empty.
+MIN_DISTRICT_STORIES = 10
+
+
+def lang_of(article) -> str:
+    return article.lang
+
 
 def rank_score(cluster: Cluster, now: int) -> float:
     """Recency with a corroboration boost.
@@ -34,7 +42,7 @@ def rank_score(cluster: Cluster, now: int) -> float:
     return freshness * breadth
 
 
-def cluster_payload(cluster: Cluster) -> dict:
+def cluster_payload(cluster: Cluster, origin: str | None = None) -> dict:
     lead = cluster.lead
     sources = []
     seen = set()
@@ -60,6 +68,10 @@ def cluster_payload(cluster: Cluster) -> dict:
         # Whether this story may occupy a headline slot. The app shows everything;
         # it just does not lead with uncorroborated national claims.
         "lead_eligible": is_lead_eligible(cluster),
+        # Which scope this story actually came from. A district payload topped up
+        # with state news marks the difference so the app can label it rather than
+        # passing off state coverage as local.
+        "origin": origin or lead.scope,
         "sources": sources[:8],
     }
 
@@ -75,21 +87,47 @@ class Publisher:
         path.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), "utf-8")
         return path
 
-    def publish(self, clusters: list[Cluster], limit: int = 120) -> list[str]:
+    def publish(
+        self,
+        clusters: list[Cluster],
+        expected_districts: list[tuple[str, str, str]] | None = None,
+        limit: int = 120,
+        min_district_stories: int = MIN_DISTRICT_STORIES,
+    ) -> list[str]:
         now = int(time.time())
         publishable = [c for c in clusters if is_publishable(c)]
 
         buckets: dict[tuple, list[Cluster]] = {}
         for c in publishable:
             lead = c.lead
-            key = (lead.scope, lead.state, lead.district, lead.lang)
+            key = (lead.scope, lead.state, lead.district, lang_of(lead))
             buckets.setdefault(key, []).append(c)
+
+        # Every registered district gets a payload, even an empty one, so a quiet
+        # day never removes a place from the picker.
+        for state, district, lang in expected_districts or []:
+            buckets.setdefault(("district", state, district, lang), [])
 
         written: list[str] = []
         index: dict[str, list] = {"national": [], "states": [], "districts": []}
 
         for (scope, state, district, lang), items in sorted(buckets.items(), key=lambda kv: str(kv[0])):
             items.sort(key=lambda c: rank_score(c, now), reverse=True)
+            origins = {id(c): scope for c in items}
+
+            # Small districts genuinely do not produce ten stories a day. Rather
+            # than show a near-empty screen, top up from the state feed — which is
+            # what a local reader wants anyway: my area, plus what is happening
+            # across MP. Topped-up items stay labelled as state coverage.
+            if scope == "district" and len(items) < min_district_stories:
+                filler = [
+                    c for c in buckets.get(("state", state, None, lang), [])
+                    if id(c) not in origins
+                ]
+                filler.sort(key=lambda c: rank_score(c, now), reverse=True)
+                for c in filler[: min_district_stories - len(items)]:
+                    origins[id(c)] = "state"
+                    items.append(c)
 
             if scope == "national":
                 name = f"india_{lang}.json"
@@ -123,7 +161,9 @@ class Publisher:
                     "title": title,
                     "generated_at": now,
                     "count": min(len(items), limit),
-                    "stories": [cluster_payload(c) for c in items[:limit]],
+                    "stories": [
+                        cluster_payload(c, origins.get(id(c))) for c in items[:limit]
+                    ],
                 },
             )
             written.append(name)

@@ -27,6 +27,7 @@ data class StoryDto(
     @SerialName("single_source") val singleSource: Boolean = true,
     @SerialName("primary_source") val primarySource: Boolean = false,
     @SerialName("lead_eligible") val leadEligible: Boolean = false,
+    val origin: String = "",
     val sources: List<SourceDto> = emptyList(),
 )
 
@@ -80,6 +81,7 @@ fun StoryDto.toDomain(): Story = Story(
     singleSource = singleSource,
     primarySource = primarySource,
     leadEligible = leadEligible,
+    origin = origin,
     sources = sources.map { StorySource(it.name, it.url) },
 )
 
@@ -114,5 +116,6 @@ fun Story.toDto(): StoryDto = StoryDto(
     singleSource = singleSource,
     primarySource = primarySource,
     leadEligible = leadEligible,
+    origin = origin,
     sources = sources.map { SourceDto(it.name, it.url) },
 )

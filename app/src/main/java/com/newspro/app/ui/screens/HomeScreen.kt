@@ -35,6 +35,7 @@ import androidx.compose.material3.Icon as M3Icon
 fun HomeScreen(
     stories: List<Story>,
     lang: String,
+    stateName: String?,
     savedIds: Set<String>,
     loading: Boolean,
     error: String?,
@@ -65,10 +66,20 @@ fun HomeScreen(
         return
     }
 
-    val hero = stories.first()
-    val rest = stories.drop(1)
+    // A quiet district gets topped up with state coverage. Keep the two apart so
+    // the reader is never shown state news dressed as local news.
+    val local = stories.filter { it.origin != "state" }
+    val fromState = stories.filter { it.origin == "state" }
+
+    // When a district has nothing of its own, the feed is entirely state coverage.
+    // Say so at the top rather than letting it pass as local news.
+    val allFromState = local.isEmpty()
+    val primary = local.ifEmpty { fromState }
+    val hero = primary.first()
+    val rest = primary.drop(1)
     val briefing = rest.take(5)
     val more = rest.drop(5)
+    val stateOverflow = if (allFromState) emptyList() else fromState
 
     LazyColumn(
         state = listState,
@@ -76,6 +87,17 @@ fun HomeScreen(
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+        if (allFromState) {
+            item(key = "state-notice") {
+                Text(
+                    text = noLocalNotice(lang, stateName),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = NewsTheme.colors.textSecondary,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 2.dp),
+                )
+            }
+        }
+
         item(key = "hero") {
             HeroStoryCard(
                 story = hero,
@@ -122,6 +144,43 @@ fun HomeScreen(
                 )
             }
         }
+
+        if (stateOverflow.isNotEmpty()) {
+            item(key = "state-header") {
+                SectionHeader(
+                    title = stateSectionTitle(lang, stateName),
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+                )
+            }
+            items(stateOverflow, key = { it.id }) { story ->
+                StoryRow(
+                    story = story,
+                    lang = lang,
+                    onClick = { onOpenStory(story.id) },
+                    saved = story.id in savedIds,
+                    onToggleSave = { onToggleSave(story.id) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun noLocalNotice(lang: String, stateName: String?): String {
+    val place = stateName?.takeIf { it.isNotBlank() }
+    return when (lang) {
+        "hi" -> if (place != null) "अभी कोई स्थानीय खबर नहीं — $place से समाचार" else "अभी कोई स्थानीय खबर नहीं"
+        "gu" -> if (place != null) "હાલ કોઈ સ્થાનિક સમાચાર નથી — $place થી" else "હાલ કોઈ સ્થાનિક સમાચાર નથી"
+        else -> if (place != null) "No local stories right now — showing $place" else "No local stories right now"
+    }
+}
+
+private fun stateSectionTitle(lang: String, stateName: String?): String {
+    val place = stateName?.takeIf { it.isNotBlank() }
+    return when (lang) {
+        "hi" -> if (place != null) "$place से" else "प्रदेश से"
+        "gu" -> if (place != null) "$place થી" else "રાજ્યમાંથી"
+        else -> if (place != null) "From $place" else "From the state"
     }
 }
 

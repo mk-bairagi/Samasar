@@ -165,6 +165,7 @@ private fun AppShell(
                     HomeScreen(
                         stories = ui.stories,
                         lang = ui.lang,
+                        stateName = ui.statePlace()?.title,
                         savedIds = ui.savedIds,
                         loading = ui.loading,
                         error = ui.error,
@@ -272,8 +273,12 @@ private fun AppShell(
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .statusBarsPadding()
-                .onSizeChanged { chromeHeight = with(density) { it.height.toDp() } },
+                // onSizeChanged must sit *outside* statusBarsPadding. Placed after
+                // it, it measures only the padded content and reports a chrome
+                // height short by the status bar inset — which pushes every feed's
+                // first item up underneath the scope chips.
+                .onSizeChanged { chromeHeight = with(density) { it.height.toDp() } }
+                .statusBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             if (isStory) {

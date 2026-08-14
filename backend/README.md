@@ -69,6 +69,14 @@ UI can label honestly rather than silently hide.
 **Tiered polling.** National every 15 min, state 20, district 60. District news
 moves slowly; this cuts daily fetches by roughly two thirds and nobody notices.
 
+**Two freshness windows.** National and state stories are clustered over 36 hours,
+districts over 7 days. Judged on the national window, a district feed of 40 items
+can span weeks in a small place — 35 of 50 MP districts produced nothing at all
+and disappeared from the app's picker entirely. Every registered district now gets
+a payload whether or not it had news, and a district with fewer than ten stories is
+topped up from the state feed. Topped-up items carry `origin: "state"` so the app
+labels them instead of passing state coverage off as local.
+
 **Conditional GET.** ETag and Last-Modified are stored per feed, so unchanged
 feeds cost a 304 and no body. Confirmed working — a second run within a minute
 returned 304 for every feed re-polled.
