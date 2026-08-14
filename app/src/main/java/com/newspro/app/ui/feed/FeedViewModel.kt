@@ -42,6 +42,10 @@ data class FeedUiState(
      */
     val saved: List<Story> = emptyList(),
     val filter: FeedFilter = FeedFilter(),
+    /** Denser feed: smaller thumbnails, no carousel, more headlines per screen. */
+    val compact: Boolean = false,
+    /** True until the reader has chosen a district for the first time. */
+    val needsOnboarding: Boolean = false,
     /** Most recently hidden story, offered back as an undo for a few seconds. */
     val undoHidden: Story? = null,
 ) {
@@ -102,6 +106,10 @@ class FeedViewModel @JvmOverloads constructor(
             districtSlug = prefs.getString(KEY_DISTRICT, null),
             saved = readSaved(),
             filter = readFilter(),
+            compact = prefs.getBoolean(KEY_COMPACT, false),
+            // No saved district means this is a first launch. Ask, rather than
+            // silently picking whichever district sorts first alphabetically.
+            needsOnboarding = prefs.getString(KEY_DISTRICT, null) == null,
         )
     )
     val state: StateFlow<FeedUiState> = _state.asStateFlow()
@@ -121,13 +129,12 @@ class FeedViewModel @JvmOverloads constructor(
                     val stateCode = current.stateCode
                         ?: index.activeStates.firstOrNull()
                         ?: index.states.firstOrNull()?.state
-                    val district = current.districtSlug
-                        ?: stateCode?.let { index.districtsIn(it, current.lang).firstOrNull()?.district }
 
-                    _state.update {
-                        it.copy(index = index, stateCode = stateCode, districtSlug = district)
-                    }
-                    loadFeed(_state.value.scope)
+                    _state.update { it.copy(index = index, stateCode = stateCode, loading = false) }
+
+                    // On a first launch there is nothing to load until the reader
+                    // has told us where they are.
+                    if (!_state.value.needsOnboarding) loadFeed(_state.value.scope)
                 }
                 .onFailure { err ->
                     _state.update {
@@ -149,9 +156,19 @@ class FeedViewModel @JvmOverloads constructor(
             .putString(KEY_DISTRICT, place.district)
             .apply()
         _state.update {
-            it.copy(stateCode = place.state, districtSlug = place.district, scope = FeedScope.DISTRICT)
+            it.copy(
+                stateCode = place.state,
+                districtSlug = place.district,
+                scope = FeedScope.DISTRICT,
+                needsOnboarding = false,
+            )
         }
         loadFeed(FeedScope.DISTRICT)
+    }
+
+    fun setCompact(value: Boolean) {
+        prefs.edit().putBoolean(KEY_COMPACT, value).apply()
+        _state.update { it.copy(compact = value) }
     }
 
     fun refresh() {
@@ -300,6 +317,7 @@ class FeedViewModel @JvmOverloads constructor(
         const val KEY_DISTRICT = "district"
         const val KEY_SAVED = "saved_stories"
         const val KEY_FILTER = "feed_filter"
+        const val KEY_COMPACT = "compact_feed"
         val json = Json { ignoreUnknownKeys = true }
     }
 }

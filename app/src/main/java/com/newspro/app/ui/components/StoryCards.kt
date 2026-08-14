@@ -200,31 +200,32 @@ fun StoryRow(
     saved: Boolean = false,
     onToggleSave: (() -> Unit)? = null,
     onMore: (() -> Unit)? = null,
+    compact: Boolean = false,
 ) {
     val colors = NewsTheme.colors
     Row(
         modifier = modifier
             .fillMaxWidth()
             .pressBounce(pressedScale = 0.975f, onClick = onClick)
-            .contentSurface(22.dp)
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .contentSurface(if (compact) 18.dp else 22.dp)
+            .padding(if (compact) 9.dp else 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 11.dp else 14.dp),
     ) {
         StoryImage(
             story,
             Modifier
-                .size(92.dp)
-                .clip(RoundedCornerShape(15.dp)),
+                .size(if (compact) 56.dp else 92.dp)
+                .clip(RoundedCornerShape(if (compact) 11.dp else 15.dp)),
         )
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(7.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 5.dp else 7.dp),
         ) {
             Text(
                 text = story.title,
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textPrimary,
-                maxLines = 3,
+                maxLines = if (compact) 2 else 3,
                 overflow = TextOverflow.Ellipsis,
             )
             StoryMeta(story, lang, tint = colors.textTertiary)

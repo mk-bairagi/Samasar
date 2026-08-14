@@ -62,6 +62,7 @@ import com.newspro.app.ui.glass.NavItem
 import com.newspro.app.ui.glass.backdrop
 import com.newspro.app.ui.glass.rememberBackdrop
 import com.newspro.app.ui.screens.HomeScreen
+import com.newspro.app.ui.screens.OnboardingScreen
 import com.newspro.app.ui.screens.PlacesScreen
 import com.newspro.app.ui.screens.Preference
 import com.newspro.app.ui.screens.ProfileScreen
@@ -131,9 +132,6 @@ private fun AppShell(
 
     var placeQuery by rememberSaveable { mutableStateOf("") }
     var actionStory by remember { mutableStateOf<com.newspro.app.data.model.Story?>(null) }
-    var notifications by rememberSaveable { mutableStateOf(true) }
-    var autoplay by rememberSaveable { mutableStateOf(false) }
-    var compact by rememberSaveable { mutableStateOf(false) }
 
     var chromeHeight by remember { mutableStateOf(0.dp) }
     val bottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -144,6 +142,21 @@ private fun AppShell(
 
     val openStory: (String) -> Unit = { id ->
         navController.navigate("story/$id") { launchSingleTop = true }
+    }
+
+    // First launch asks for a district before anything else. Everything below
+    // assumes the reader has a place; without one the feed has nothing to show.
+    if (ui.needsOnboarding) {
+        Box(Modifier.fillMaxSize()) {
+            AmbientBackground(Modifier.fillMaxSize())
+            OnboardingScreen(
+                index = ui.index,
+                lang = ui.lang,
+                loading = ui.loading,
+                onSelect = vm::selectDistrict,
+            )
+        }
+        return
     }
 
     Box(Modifier.fillMaxSize()) {
@@ -170,6 +183,7 @@ private fun AppShell(
                         lang = ui.lang,
                         stateName = ui.statePlace()?.title,
                         savedIds = ui.savedIds,
+                        compact = ui.compact,
                         loading = ui.loading,
                         error = ui.error,
                         chrome = chrome,
@@ -228,26 +242,16 @@ private fun AppShell(
                                 checked = darkTheme,
                                 onChange = onToggleTheme,
                             ),
-                            Preference(
-                                icon = NewsIcons.Bell,
-                                title = "Breaking alerts",
-                                subtitle = "Only for places you follow",
-                                checked = notifications,
-                                onChange = { notifications = it },
-                            ),
-                            Preference(
-                                icon = NewsIcons.Listen,
-                                title = "Autoplay audio",
-                                subtitle = "Start narration on open",
-                                checked = autoplay,
-                                onChange = { autoplay = it },
-                            ),
+                            // Breaking alerts and autoplay audio used to sit here
+                            // and did nothing at all. A control that lies is worse
+                            // than a missing one, so they are gone until there is
+                            // a push service and an audio player to back them.
                             Preference(
                                 icon = NewsIcons.Sliders,
                                 title = "Compact feed",
                                 subtitle = "More headlines per screen",
-                                checked = compact,
-                                onChange = { compact = it },
+                                checked = ui.compact,
+                                onChange = vm::setCompact,
                             ),
                         ),
                         filter = ui.filter,

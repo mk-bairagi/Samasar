@@ -38,6 +38,7 @@ fun HomeScreen(
     lang: String,
     stateName: String?,
     savedIds: Set<String>,
+    compact: Boolean,
     loading: Boolean,
     error: String?,
     chrome: ChromeState,
@@ -78,17 +79,19 @@ fun HomeScreen(
     // Say so at the top rather than letting it pass as local news.
     val allFromState = local.isEmpty()
     val primary = local.ifEmpty { fromState }
-    val hero = primary.first()
-    val rest = primary.drop(1)
-    val briefing = rest.take(5)
-    val more = rest.drop(5)
+    // Compact drops the hero card and the carousel entirely — those are what cost
+    // the screen space, and "more headlines per screen" is the whole point.
+    val hero = if (compact) null else primary.first()
+    val rest = if (compact) primary else primary.drop(1)
+    val briefing = if (compact) emptyList() else rest.take(5)
+    val more = if (compact) rest else rest.drop(5)
     val stateOverflow = if (allFromState) emptyList() else fromState
 
     LazyColumn(
         state = listState,
         modifier = modifier.fillMaxSize(),
         contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 9.dp else 14.dp),
     ) {
         if (allFromState) {
             item(key = "state-notice") {
@@ -101,13 +104,15 @@ fun HomeScreen(
             }
         }
 
-        item(key = "hero") {
-            HeroStoryCard(
-                story = hero,
-                lang = lang,
-                onClick = { onOpenStory(hero.id) },
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
+        if (hero != null) {
+            item(key = "hero") {
+                HeroStoryCard(
+                    story = hero,
+                    lang = lang,
+                    onClick = { onOpenStory(hero.id) },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
         }
 
         if (briefing.isNotEmpty()) {
@@ -148,6 +153,7 @@ fun HomeScreen(
                         saved = story.id in savedIds,
                         onToggleSave = { onToggleSave(story.id) },
                         onMore = { onMore(story) },
+                        compact = compact,
                     )
                 }
             }
@@ -172,6 +178,7 @@ fun HomeScreen(
                         saved = story.id in savedIds,
                         onToggleSave = { onToggleSave(story.id) },
                         onMore = { onMore(story) },
+                        compact = compact,
                     )
                 }
             }

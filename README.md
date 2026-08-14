@@ -123,8 +123,13 @@ data/          Domain model, repository, remote layer
 backend/       Ingestion pipeline (Python)
 ```
 
-Four tabs plus a story route. Scope tabs, district selection, search, saved stories and the theme
-toggle are all wired and functional.
+Four tabs plus a story route. First launch asks which district you want rather than silently
+defaulting — open the app in Rewa and get Agar Malwa, and you conclude it is broken.
+
+Every control does something. Two toggles that did nothing (breaking alerts, autoplay audio) were
+removed rather than left in as decoration; they can come back when there is a push service and an
+audio player behind them. **Compact feed** is real: it drops the hero card and the carousel, shrinks
+thumbnails to 56dp and fits roughly five headlines where one and a half fitted before.
 
 **Not interested** is handled three ways, all local to the device:
 
