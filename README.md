@@ -157,8 +157,29 @@ becomes one story carrying all its sources.
 - Saved stories are persisted whole rather than by id, since a saved story usually belongs to a
   feed the reader has since navigated away from.
 
-Set the feed origin with `FEED_BASE_URL` in `app/build.gradle.kts`. Debug points at
-`http://10.0.2.2:8000/` for a local `python -m http.server` in `backend/public`.
+### Where the feed comes from
+
+The app reads static JSON from GitHub's CDN. There is no server anywhere — a news feed is
+identical for everyone reading the same place, so it is computed once by a scheduled job and
+saved as a file.
+
+```
+122 RSS feeds
+     ↓  GitHub Actions, every 15 min (~40s, then the container exits)
+  dedupe → cluster → 55 JSON files
+     ↓  pushed to the `feeds` branch
+raw.githubusercontent.com  →  the app
+```
+
+Both build types point at the live feed via `FEED_BASE_URL` in `app/build.gradle.kts`. To develop
+against a local pipeline instead, run `python -m http.server 8000 --bind 127.0.0.1` in
+`backend/public` and swap the debug URL for `http://10.0.2.2:8000/` — that address is the
+emulator's alias for the host loopback. Bind to `127.0.0.1`, not `0.0.0.0`, or the feed is
+readable by anyone on the same network.
+
+Running costs are zero: Actions minutes are unlimited on public repositories, and the published
+feed is 1.7 MB served from GitHub's CDN. Nothing about a reader — their district, saved stories or
+mutes — ever leaves their phone.
 
 ## Notes
 

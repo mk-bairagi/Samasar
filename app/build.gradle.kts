@@ -20,9 +20,15 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            // Points at a local `python -m http.server` in backend/public.
-            // 10.0.2.2 is the emulator's route back to the host machine.
-            buildConfigField("String", "FEED_BASE_URL", "\"http://10.0.2.2:8000/\"")
+            // Same live feed as release. To develop against a local pipeline
+            // instead, run `python -m http.server 8000 --bind 127.0.0.1` in
+            // backend/public and swap this for "http://10.0.2.2:8000/" —
+            // 10.0.2.2 is the emulator's alias for the host loopback.
+            buildConfigField(
+                "String",
+                "FEED_BASE_URL",
+                "\"https://raw.githubusercontent.com/mk-bairagi/News-Pro/feeds/\"",
+            )
         }
         release {
             buildConfigField(
