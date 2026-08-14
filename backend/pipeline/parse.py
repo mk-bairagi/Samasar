@@ -93,9 +93,19 @@ def parse_feed(feed: Feed, body: bytes) -> list[Article]:
         if published > now + 3600:
             published = now
 
+        # Identity is the URL *within a place*, not the URL alone.
+        #
+        # Amar Ujala serves the same story from a district feed, the state feed,
+        # and neighbouring district feeds. Keyed on URL alone, whichever feed was
+        # parsed first owned the story forever and every other place lost it —
+        # Neemuch ended up with 1 stored article out of 40 because the state feed
+        # had already claimed the rest. A story carried by the Neemuch feed is
+        # local news in Neemuch and state news in MP; both copies are wanted.
+        place_key = f"{url}|{feed.scope}|{feed.state or ''}|{feed.district or ''}"
+
         out.append(
             Article(
-                id=hashlib.sha1(url.encode("utf-8")).hexdigest(),
+                id=hashlib.sha1(place_key.encode("utf-8")).hexdigest(),
                 url=url,
                 title=title,
                 summary=clean_text(entry.get("summary") or entry.get("description")),

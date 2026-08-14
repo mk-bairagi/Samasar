@@ -77,8 +77,29 @@ def jaccard(a: set[str], b: set[str]) -> float:
     return inter / (len(a) + len(b) - inter)
 
 
+def place_key(article: Article) -> tuple:
+    """The feed context an article belongs to.
+
+    Deduplication and clustering both operate *within* a place. Across places
+    they must not: the same story carried by the Neemuch feed and the MP state
+    feed is local news in one and state news in the other, and collapsing them
+    globally silently empties small districts.
+    """
+    return (article.scope, article.state, article.district, article.lang)
+
+
 def dedupe(articles: list[Article]) -> list[Article]:
-    """Drop near-identical duplicates, keeping the richest copy of each."""
+    """Drop near-identical duplicates within each place, keeping the richest copy."""
+    out: list[Article] = []
+    groups: dict[tuple, list[Article]] = defaultdict(list)
+    for a in articles:
+        groups[place_key(a)].append(a)
+    for group in groups.values():
+        out.extend(_dedupe_one_place(group))
+    return out
+
+
+def _dedupe_one_place(articles: list[Article]) -> list[Article]:
     for a in articles:
         a.simhash = simhash(f"{a.title} {a.summary[:120]}")
 
@@ -105,7 +126,22 @@ def dedupe(articles: list[Article]) -> list[Article]:
 
 
 def build_clusters(articles: list[Article]) -> list[Cluster]:
-    """Group articles describing the same event, across publishers."""
+    """Group articles describing the same event, across publishers within a place.
+
+    Grouping by place first is what keeps the valuable cross-publisher merges —
+    national stories from HT, News18 and Mint all share a place — while stopping
+    a district's copy of a story from being absorbed into the state feed's.
+    """
+    out: list[Cluster] = []
+    groups: dict[tuple, list[Article]] = defaultdict(list)
+    for a in articles:
+        groups[place_key(a)].append(a)
+    for group in groups.values():
+        out.extend(_cluster_one_place(group))
+    return out
+
+
+def _cluster_one_place(articles: list[Article]) -> list[Cluster]:
     ordered = sorted(articles, key=lambda a: a.published_at, reverse=True)
     token_sets = {a.id: content_tokens(a) for a in ordered}
 

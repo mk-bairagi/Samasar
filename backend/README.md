@@ -81,6 +81,19 @@ labels them instead of passing state coverage off as local.
 feeds cost a 304 and no body. Confirmed working — a second run within a minute
 returned 304 for every feed re-polled.
 
+**Identity is the URL within a place, not the URL alone.** Amar Ujala serves the
+same story from a district feed, the state feed and neighbouring districts. Keyed
+on URL alone, whichever feed was parsed first owned it forever and every other
+place lost its copy — Bhopal and Indore were capped around 45 stories, and small
+districts were emptied. Dedup and clustering are likewise scoped per place. This
+keeps the valuable cross-publisher merges, since national feeds share a place.
+
+**Small districts need two publishers, not a wider window.** Amar Ujala's Neemuch
+feed holds 40 items spanning four months, so on any given week it offers one
+story. Patrika serves a location feed for every MP district, which roughly doubles
+local coverage. Widening the freshness window instead would just serve month-old
+news as today's.
+
 **Publisher names come from the registry, not the feed.** Channel titles are SEO
 strings — "Latest And Breaking Hindi News Headlines…", "mint - news". Not fit to
 show a reader.
@@ -91,8 +104,8 @@ show a reader.
 |---|---|---|
 | English national | 11 | incl. PIB, flagged `primary_source` |
 | Hindi national | 7 | |
-| **MP districts** | **50** | Amar Ujala publishes per-district feeds |
-| MP state / cities | 8 | Bhaskar `category-1739`, Patrika locations |
+| **MP districts** | **100** | Two per district: Amar Ujala and Patrika |
+| MP state | 3 | Bhaskar `category-1739`, Amar Ujala, Patrika |
 | Gujarati | 12 | state-level only — see below |
 | UP districts | 72 | registered, not yet live |
 

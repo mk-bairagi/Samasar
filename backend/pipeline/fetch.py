@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from urllib.parse import urlparse
@@ -22,6 +23,12 @@ log = logging.getLogger(__name__)
 
 BOT_UA = "NewsProBot/0.1 (+https://github.com/mk-bairagi/News-Pro)"
 MAX_PER_HOST = 4
+
+# One publisher can serve fifty of our feeds — Patrika covers every MP district.
+# Fired off back to back that reads as an attack, and Patrika starts returning
+# empty documents. A small gap between requests to the same host avoids it
+# entirely and costs nothing, since hosts are fetched in parallel with each other.
+HOST_INTERVAL_SECONDS = 0.4
 
 
 @dataclass
@@ -48,6 +55,7 @@ class Fetcher:
         self.timeout = timeout
         self.workers = workers
         self._host_locks: dict[str, threading.Semaphore] = {}
+        self._host_next: dict[str, float] = {}
         self._lock = threading.Lock()
 
     def _host_gate(self, url: str) -> threading.Semaphore:
@@ -56,6 +64,17 @@ class Fetcher:
             if host not in self._host_locks:
                 self._host_locks[host] = threading.Semaphore(MAX_PER_HOST)
             return self._host_locks[host]
+
+    def _wait_turn(self, url: str) -> None:
+        """Space out consecutive requests to the same publisher."""
+        host = urlparse(url).netloc
+        with self._lock:
+            now = time.monotonic()
+            earliest = self._host_next.get(host, 0.0)
+            wait = max(0.0, earliest - now)
+            self._host_next[host] = max(now, earliest) + HOST_INTERVAL_SECONDS
+        if wait:
+            time.sleep(wait)
 
     def fetch_one(self, feed: Feed, etag: str | None = None, modified: str | None = None) -> FetchResult:
         headers = {
@@ -72,6 +91,7 @@ class Fetcher:
 
         gate = self._host_gate(feed.url)
         with gate:
+            self._wait_turn(feed.url)
             try:
                 r = requests.get(feed.url, headers=headers, timeout=self.timeout, allow_redirects=True)
             except Exception as exc:  # noqa: BLE001 - a dead feed must not kill the run

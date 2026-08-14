@@ -102,13 +102,22 @@ templates:
     state: gj
     slugs: [ahmedabad, surat]
 
+  # Patrika serves a location feed for every MP district, not just the big five.
+  # This is the second source small districts badly need: Amar Ujala's Neemuch
+  # feed holds 40 items spanning four months, so on any given week it offers one
+  # story. Patrika adds 20 more, refreshed far more often.
   - id_prefix: patrika_mp
     name: "पत्रिका"
     base: "https://cms.patrika.com/googlefeed/blog/location/{slug}-news"
     lang: hi
     scope: district
     state: mp
-    slugs: [bhopal, indore, gwalior, jabalpur, ujjain]
+    slugs: [agar-malwa, anuppur, ashoknagar, balaghat, barwani, betul, bhind, bhopal,
+            burhanpur, chhatarpur, chhindwara, damoh, datia, dewas, dhar, dindori, guna,
+            gwalior, harda, indore, jabalpur, jhabua, katni, khandwa, khargone, mandla,
+            mandsaur, morena, narmadapuram, narsinghpur, neemuch, panna, raisen, rajgarh,
+            ratlam, rewa, sagar, satna, sehore, seoni, shahdol, shajapur, sheopur,
+            shivpuri, sidhi, singrauli, tikamgarh, ujjain, umaria, vidisha]
 
 # Kept so nobody re-adds these by guesswork. Checked 2026-08-13.
 known_bad:
