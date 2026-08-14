@@ -78,16 +78,25 @@ val LightNewsColors = NewsColors(
     shadow = Color(0xFF3A3A5C),
 )
 
-/** Per-category accents used by artwork and section chrome. */
-val CategoryColors: Map<String, List<Color>> = mapOf(
-    "Top" to listOf(Color(0xFF6E8BFF), Color(0xFFB06CFF)),
-    "World" to listOf(Color(0xFF2BA3E0), Color(0xFF1F5FD0)),
-    "Tech" to listOf(Color(0xFF7B4DFF), Color(0xFFD34DFF)),
-    "Business" to listOf(Color(0xFF12B886), Color(0xFF0E8FA8)),
-    "Science" to listOf(Color(0xFFFF7A45), Color(0xFFFFC24D)),
-    "Sports" to listOf(Color(0xFFFF4D8D), Color(0xFFFF8A4D)),
-    "Culture" to listOf(Color(0xFFFFB84D), Color(0xFFE0517A)),
+/**
+ * Accent pairs used by generated artwork.
+ *
+ * The pipeline does not classify stories by topic, so these are keyed off the
+ * publisher instead — a stable hash means a given source always looks the same,
+ * which reads as intentional rather than random.
+ */
+val ArtworkPalettes: List<List<Color>> = listOf(
+    listOf(Color(0xFF6E8BFF), Color(0xFFB06CFF)),
+    listOf(Color(0xFF2BA3E0), Color(0xFF1F5FD0)),
+    listOf(Color(0xFF7B4DFF), Color(0xFFD34DFF)),
+    listOf(Color(0xFF12B886), Color(0xFF0E8FA8)),
+    listOf(Color(0xFFFF7A45), Color(0xFFFFC24D)),
+    listOf(Color(0xFFFF4D8D), Color(0xFFFF8A4D)),
+    listOf(Color(0xFFFFB84D), Color(0xFFE0517A)),
 )
 
-fun categoryGradient(category: String): List<Color> =
-    CategoryColors[category] ?: CategoryColors.getValue("Top")
+fun paletteFor(key: String): List<Color> {
+    if (key.isEmpty()) return ArtworkPalettes[0]
+    val hash = key.fold(7) { acc, c -> acc * 31 + c.code }
+    return ArtworkPalettes[(hash % ArtworkPalettes.size + ArtworkPalettes.size) % ArtworkPalettes.size]
+}

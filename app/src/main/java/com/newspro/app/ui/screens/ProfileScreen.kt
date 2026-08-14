@@ -51,9 +51,9 @@ data class Preference(
 
 @Composable
 fun ProfileScreen(
-    readCount: Int,
     savedCount: Int,
-    streakDays: Int,
+    placeName: String,
+    sourceCount: Int,
     preferences: List<Preference>,
     chrome: ChromeState,
     contentPadding: PaddingValues,
@@ -104,7 +104,7 @@ fun ProfileScreen(
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = "Reading since March 2026",
+                        text = "Reading $placeName",
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textTertiary,
                     )
@@ -117,9 +117,9 @@ fun ProfileScreen(
                 modifier = Modifier.padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                StatTile("Read", readCount.toString(), Modifier.weight(1f))
                 StatTile("Saved", savedCount.toString(), Modifier.weight(1f))
-                StatTile("Streak", "${streakDays}d", Modifier.weight(1f))
+                StatTile("Sources", sourceCount.toString(), Modifier.weight(1f))
+                StatTile("Place", placeName.take(8), Modifier.weight(1f))
             }
         }
 

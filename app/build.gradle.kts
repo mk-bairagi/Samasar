@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -19,8 +20,16 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
+            // Points at a local `python -m http.server` in backend/public.
+            // 10.0.2.2 is the emulator's route back to the host machine.
+            buildConfigField("String", "FEED_BASE_URL", "\"http://10.0.2.2:8000/\"")
         }
         release {
+            buildConfigField(
+                "String",
+                "FEED_BASE_URL",
+                "\"https://raw.githubusercontent.com/mk-bairagi/News-Pro/feeds/\"",
+            )
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -37,6 +46,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {
@@ -66,6 +76,10 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.browser)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.coil.compose)
 
     debugImplementation(libs.androidx.ui.tooling)
 }

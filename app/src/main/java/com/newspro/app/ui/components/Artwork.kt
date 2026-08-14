@@ -9,24 +9,24 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.lerp
-import com.newspro.app.ui.theme.categoryGradient
+import com.newspro.app.ui.theme.paletteFor
 
 /**
- * Stand-in artwork for a story.
+ * Generated artwork, used when a story has no image of its own.
  *
- * Generated rather than downloaded, so the app has no image dependency yet and every card still
- * carries a distinct, saturated image the glass can refract. Composition is seeded from the
- * article id, so a given story always looks the same. Swap for real photography by replacing this
- * composable's body with an image loader.
+ * Plenty of RSS items ship without a thumbnail, and an empty grey box would read as
+ * broken. Composition is seeded from the story id so a given story always looks the
+ * same, and the palette is keyed off the publisher so one source stays visually
+ * consistent across cards.
  */
 @Composable
-fun ArticleArtwork(
+fun StoryArtwork(
     seed: String,
-    category: String,
+    paletteKey: String,
     modifier: Modifier = Modifier,
     scrimStrength: Float = 0f,
 ) {
-    val palette = categoryGradient(category)
+    val palette = paletteFor(paletteKey)
     Canvas(modifier.fillMaxSize()) {
         val s = seed.hashCode()
         val base = palette[0]

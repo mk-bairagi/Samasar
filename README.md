@@ -116,29 +116,41 @@ Springs, not curves, wherever something is being *moved* rather than faded.
 ui/
   glass/       Backdrop, LiquidGlass, GlassShader, nav bar, top bar, toggle, controls
   components/  Ambient field, generated artwork, story cards, icon set
-  screens/     Home, Discover, Saved, Profile, Article
+  screens/     Home, Places, Saved, Profile, Story
+  feed/        FeedViewModel — scope, place selection, saved stories
   theme/       Palette, typography
-data/          Article model + placeholder feed
+data/          Domain model, repository, remote layer
+backend/       Ingestion pipeline (Python)
 ```
 
-Four tabs plus an article route. Saved state, category filter, search, and the theme toggle are
-all wired and functional.
+Four tabs plus a story route. Scope tabs, district selection, search, saved stories and the theme
+toggle are all wired and functional.
 
 ---
 
-## Placeholders to replace
+## Data
 
-- **`data/SampleFeed.kt`** — invented publishers and bylines, so nothing reads as a real story
-  from a real outlet. Swap for the live repository.
-- **`ui/components/Artwork.kt`** — artwork is generated from a hash of the article id rather than
-  downloaded, so the app currently carries no image dependency. Replace the composable body with
-  an image loader; everything else keeps working.
-- Bookmarks live in memory only.
+The app reads precomputed JSON from the ingestion pipeline in [backend/](backend/) — roughly 95
+verified Indian RSS feeds, deduplicated and clustered so one event from several publishers
+becomes one story carrying all its sources.
+
+- `data/NewsRepository.kt` is the only door to news data; screens never touch the network.
+- **No Room.** The payloads are immutable JSON blobs, so OkHttp's disk cache already provides
+  offline reads and revalidation. A local database would duplicate that and add migrations.
+- Requests are network-first and fall back to cache, because a regional reader is used on patchy
+  connections and stale headlines beat an error screen.
+- `ui/components/Artwork.kt` still generates artwork, now as the *fallback* when a story has no
+  image — plenty of RSS items ship without one, and a grey box reads as broken.
+- Saved stories are persisted whole rather than by id, since a saved story usually belongs to a
+  feed the reader has since navigated away from.
+
+Set the feed origin with `FEED_BASE_URL` in `app/build.gradle.kts`. Debug points at
+`http://10.0.2.2:8000/` for a local `python -m http.server` in `backend/public`.
 
 ## Notes
 
 - The icon set is hand-built on a 24dp grid (`NewsIcons.kt`), so there is no icon dependency.
-- Release builds clean under R8 at ~1.1 MB.
+- Release builds clean under R8 at ~1.6 MB.
 - Measured on an API 36 emulator, debug build: ~7% janky frames while flinging the feed. Real
   hardware with a release build will be well clear of that; the emulator's GPU is the bottleneck.
   If you need headroom on low-end devices, lower `GlassStyle.blur` — it dominates the cost.

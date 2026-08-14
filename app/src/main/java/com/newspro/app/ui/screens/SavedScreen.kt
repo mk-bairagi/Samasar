@@ -22,23 +22,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.newspro.app.data.Article
+import com.newspro.app.data.model.Story
 import com.newspro.app.ui.components.NewsIcons
 import com.newspro.app.ui.components.StoryRow
 import com.newspro.app.ui.components.contentSurface
 import com.newspro.app.ui.glass.ChromeState
 import com.newspro.app.ui.glass.GlassButton
-import com.newspro.app.ui.glass.pressBounce
 import com.newspro.app.ui.theme.NewsTheme
 import androidx.compose.material3.Icon as M3Icon
 
 @Composable
 fun SavedScreen(
-    saved: List<Article>,
+    saved: List<Story>,
+    lang: String,
     chrome: ChromeState,
     contentPadding: PaddingValues,
-    onOpenArticle: (String) -> Unit,
-    onUnsave: (String) -> Unit,
+    onOpenStory: (String) -> Unit,
+    onToggleSave: (String) -> Unit,
     onBrowse: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -77,7 +77,7 @@ fun SavedScreen(
                 )
                 Text(
                     text = "Tap the bookmark on any story and it will wait for you here, " +
-                        "available offline.",
+                        "readable offline.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                     textAlign = TextAlign.Center,
@@ -111,51 +111,28 @@ fun SavedScreen(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 M3Icon(
-                    imageVector = NewsIcons.Clock,
+                    imageVector = NewsIcons.Bookmark,
                     contentDescription = null,
                     tint = colors.accent,
-                    modifier = Modifier.size(21.dp),
+                    modifier = Modifier.size(20.dp),
                 )
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "${saved.size} saved",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = colors.textPrimary,
-                    )
-                    Text(
-                        text = "${saved.sumOf { it.readMinutes }} minutes of reading",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.textTertiary,
-                    )
-                }
+                Text(
+                    text = "${saved.size} saved",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.textPrimary,
+                )
             }
         }
 
-        items(saved, key = { it.id }) { article ->
-            Row(
+        items(saved, key = { it.id }) { story ->
+            StoryRow(
+                story = story,
+                lang = lang,
+                onClick = { onOpenStory(story.id) },
+                saved = true,
+                onToggleSave = { onToggleSave(story.id) },
                 modifier = Modifier.padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                StoryRow(
-                    article = article,
-                    onClick = { onOpenArticle(article.id) },
-                    modifier = Modifier.weight(1f),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .pressBounce(pressedScale = 0.88f) { onUnsave(article.id) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    M3Icon(
-                        imageVector = NewsIcons.BookmarkFilled,
-                        contentDescription = "Remove from saved",
-                        tint = colors.accent,
-                        modifier = Modifier.size(19.dp),
-                    )
-                }
-            }
+            )
         }
 
         item(key = "tail") { Box(Modifier.height(4.dp)) }

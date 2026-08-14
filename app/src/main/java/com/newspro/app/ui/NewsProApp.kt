@@ -27,57 +27,55 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.compose.ui.layout.onSizeChanged
-import com.newspro.app.data.SampleFeed
-import com.newspro.app.data.matches
+import com.newspro.app.data.model.FeedScope
 import com.newspro.app.ui.components.AmbientBackground
 import com.newspro.app.ui.components.NewsIcons
+import com.newspro.app.ui.feed.FeedViewModel
 import com.newspro.app.ui.glass.ChromeState
 import com.newspro.app.ui.glass.GlassChip
 import com.newspro.app.ui.glass.GlassIconButton
 import com.newspro.app.ui.glass.GlassNavBar
 import com.newspro.app.ui.glass.GlassSearchField
-import com.newspro.app.ui.glass.GlassStyle
 import com.newspro.app.ui.glass.GlassTopBar
 import com.newspro.app.ui.glass.NavItem
-import com.newspro.app.ui.glass.PillCorner
 import com.newspro.app.ui.glass.backdrop
-import com.newspro.app.ui.glass.liquidGlass
 import com.newspro.app.ui.glass.rememberBackdrop
-import com.newspro.app.ui.screens.ArticleScreen
-import com.newspro.app.ui.screens.DiscoverScreen
 import com.newspro.app.ui.screens.HomeScreen
+import com.newspro.app.ui.screens.PlacesScreen
 import com.newspro.app.ui.screens.Preference
 import com.newspro.app.ui.screens.ProfileScreen
 import com.newspro.app.ui.screens.SavedScreen
+import com.newspro.app.ui.screens.StoryScreen
 import com.newspro.app.ui.theme.NewsProTheme
 
 private const val RouteHome = "home"
-private const val RouteDiscover = "discover"
+private const val RoutePlaces = "places"
 private const val RouteSaved = "saved"
 private const val RouteProfile = "profile"
-private const val RouteArticle = "article/{id}"
+private const val RouteStory = "story/{id}"
 
 private val Tabs = listOf(
     NavItem(RouteHome, "Today", NewsIcons.Home),
-    NavItem(RouteDiscover, "Discover", NewsIcons.Discover),
+    NavItem(RoutePlaces, "Places", NewsIcons.Discover),
     NavItem(RouteSaved, "Saved", NewsIcons.Bookmark),
     NavItem(RouteProfile, "You", NewsIcons.Profile),
 )
@@ -86,8 +84,8 @@ private val Tabs = listOf(
 fun NewsProApp() {
     var darkTheme by rememberSaveable { mutableStateOf(true) }
 
-    // The bars are transparent and content runs underneath them, so the icons have to invert with
-    // the theme or they vanish against the page.
+    // Bars are transparent and content runs underneath, so their icons have to
+    // invert with the theme or they disappear against the page.
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
@@ -100,25 +98,25 @@ fun NewsProApp() {
     }
 
     NewsProTheme(darkTheme = darkTheme) {
-        AppShell(
-            darkTheme = darkTheme,
-            onToggleTheme = { darkTheme = it },
-        )
+        AppShell(darkTheme = darkTheme, onToggleTheme = { darkTheme = it })
     }
 }
 
 /**
  * The shell owns the one backdrop everything refracts.
  *
- * Screen content lives *inside* the backdrop subtree; all glass chrome is a sibling drawn after
- * it. That ordering is load-bearing — a glass panel nested inside the layer it samples would
- * recursively feed on itself.
+ * Screen content lives inside the backdrop subtree; all glass chrome is a sibling
+ * drawn after it. That ordering is load-bearing — a glass panel nested inside the
+ * layer it samples would feed on itself.
  */
 @Composable
 private fun AppShell(
     darkTheme: Boolean,
     onToggleTheme: (Boolean) -> Unit,
 ) {
+    val vm: FeedViewModel = viewModel()
+    val ui by vm.state.collectAsStateWithLifecycle()
+
     val backdrop = rememberBackdrop()
     val chrome = remember { ChromeState() }
     val navController = rememberNavController()
@@ -126,12 +124,10 @@ private fun AppShell(
 
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: RouteHome
-    val isArticle = route == RouteArticle
+    val isStory = route == RouteStory
     val selectedTab = Tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
 
-    var category by rememberSaveable { mutableStateOf("Top") }
-    var query by rememberSaveable { mutableStateOf("") }
-    val savedIds = remember { mutableStateListOf("a3", "a6") }
+    var placeQuery by rememberSaveable { mutableStateOf("") }
     var notifications by rememberSaveable { mutableStateOf(true) }
     var autoplay by rememberSaveable { mutableStateOf(false) }
     var compact by rememberSaveable { mutableStateOf(false) }
@@ -143,13 +139,13 @@ private fun AppShell(
         bottom = bottomInset + 68.dp + 34.dp,
     )
 
-    val openArticle: (String) -> Unit = { id ->
-        navController.navigate("article/$id") { launchSingleTop = true }
+    val openStory: (String) -> Unit = { id ->
+        navController.navigate("story/$id") { launchSingleTop = true }
     }
 
     Box(Modifier.fillMaxSize()) {
 
-        // ---- Backdrop: ambient field + whatever screen is showing --------------------------
+        // ---- Backdrop: ambient field + current screen --------------------------------
         Box(
             Modifier
                 .fillMaxSize()
@@ -167,32 +163,44 @@ private fun AppShell(
             ) {
                 composable(RouteHome) {
                     HomeScreen(
-                        articles = SampleFeed.byCategory(category),
+                        stories = ui.stories,
+                        lang = ui.lang,
+                        savedIds = ui.savedIds,
+                        loading = ui.loading,
+                        error = ui.error,
                         chrome = chrome,
                         contentPadding = contentPadding,
-                        onOpenArticle = openArticle,
+                        onOpenStory = openStory,
+                        onToggleSave = vm::toggleSaved,
+                        onRetry = vm::retry,
                     )
                 }
-                composable(RouteDiscover) {
-                    DiscoverScreen(
-                        articles = SampleFeed.search(query),
-                        trending = SampleFeed.trending.filter { it.matches(query) },
-                        publishers = SampleFeed.publishers.filter {
-                            query.isBlank() || it.contains(query, ignoreCase = true)
-                        },
-                        query = query,
+                composable(RoutePlaces) {
+                    PlacesScreen(
+                        index = ui.index,
+                        query = placeQuery,
+                        lang = ui.lang,
+                        selectedState = ui.stateCode,
+                        selectedDistrict = ui.districtSlug,
                         chrome = chrome,
                         contentPadding = contentPadding,
-                        onOpenArticle = openArticle,
+                        onSelect = { place ->
+                            vm.selectDistrict(place)
+                            navController.navigate(RouteHome) {
+                                popUpTo(RouteHome) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
                     )
                 }
                 composable(RouteSaved) {
                     SavedScreen(
-                        saved = SampleFeed.articles.filter { it.id in savedIds },
+                        saved = ui.saved,
+                        lang = ui.lang,
                         chrome = chrome,
                         contentPadding = contentPadding,
-                        onOpenArticle = openArticle,
-                        onUnsave = { savedIds.remove(it) },
+                        onOpenStory = openStory,
+                        onToggleSave = vm::toggleSaved,
                         onBrowse = {
                             navController.navigate(RouteHome) {
                                 popUpTo(RouteHome) { inclusive = true }
@@ -203,9 +211,9 @@ private fun AppShell(
                 }
                 composable(RouteProfile) {
                     ProfileScreen(
-                        readCount = 128,
-                        savedCount = savedIds.size,
-                        streakDays = 23,
+                        savedCount = ui.saved.size,
+                        placeName = ui.districtPlace()?.title ?: "—",
+                        sourceCount = ui.stories.sumOf { it.sourceCount },
                         preferences = listOf(
                             Preference(
                                 icon = NewsIcons.Moon,
@@ -217,7 +225,7 @@ private fun AppShell(
                             Preference(
                                 icon = NewsIcons.Bell,
                                 title = "Breaking alerts",
-                                subtitle = "Only for stories you follow",
+                                subtitle = "Only for places you follow",
                                 checked = notifications,
                                 onChange = { notifications = it },
                             ),
@@ -241,31 +249,26 @@ private fun AppShell(
                     )
                 }
                 composable(
-                    route = RouteArticle,
+                    route = RouteStory,
                     arguments = listOf(navArgument("id") { type = NavType.StringType }),
-                    enterTransition = {
-                        slideInVertically(tween(340)) { it / 5 } + fadeIn(tween(240))
-                    },
-                    popExitTransition = {
-                        slideOutVertically(tween(280)) { it / 6 } + fadeOut(tween(200))
-                    },
+                    enterTransition = { slideInVertically(tween(340)) { it / 5 } + fadeIn(tween(240)) },
+                    popExitTransition = { slideOutVertically(tween(280)) { it / 6 } + fadeOut(tween(200)) },
                 ) { backStackEntry ->
                     val id = backStackEntry.arguments?.getString("id").orEmpty()
-                    val article = SampleFeed.byId(id)
-                    ArticleScreen(
-                        article = article,
-                        related = SampleFeed.articles
-                            .filter { it.category == article.category && it.id != article.id }
-                            .take(3),
-                        chrome = chrome,
-                        contentPadding = contentPadding,
-                        onOpenArticle = openArticle,
-                    )
+                    val story = vm.storyById(id)
+                    if (story != null) {
+                        StoryScreen(
+                            story = story,
+                            lang = ui.lang,
+                            chrome = chrome,
+                            contentPadding = contentPadding,
+                        )
+                    }
                 }
             }
         }
 
-        // ---- Floating chrome ---------------------------------------------------------------
+        // ---- Floating chrome ---------------------------------------------------------
         Column(
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -273,7 +276,8 @@ private fun AppShell(
                 .onSizeChanged { chromeHeight = with(density) { it.height.toDp() } },
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            if (isArticle) {
+            if (isStory) {
+                val story = vm.storyById(entry?.arguments?.getString("id").orEmpty())
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -286,12 +290,19 @@ private fun AppShell(
                         onClick = { navController.popBackStack() },
                     )
                     Spacer(Modifier.weight(1f))
+                    if (story != null) {
+                        GlassIconButton(
+                            icon = if (story.id in ui.savedIds) NewsIcons.BookmarkFilled else NewsIcons.Bookmark,
+                            contentDescription = "Save",
+                            onClick = { vm.toggleSaved(story.id) },
+                        )
+                    }
                 }
             } else {
                 GlassTopBar(
                     backdrop = backdrop,
-                    title = titleFor(route),
-                    subtitle = subtitleFor(route),
+                    title = titleFor(route, ui.currentTitle),
+                    subtitle = subtitleFor(route, ui),
                     scrollProgress = chrome.scrolled,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     trailing = {
@@ -302,52 +313,48 @@ private fun AppShell(
                             diameter = 40.dp,
                         )
                         GlassIconButton(
-                            icon = NewsIcons.Bell,
-                            contentDescription = "Notifications",
-                            onClick = {},
+                            icon = NewsIcons.Refresh,
+                            contentDescription = "Refresh",
+                            onClick = vm::refresh,
                             diameter = 40.dp,
                         )
                     },
                 )
 
                 when (route) {
+                    // Scope tabs: local → state → national. This is the primary
+                    // navigation for a regional reader, so it sits in the chrome.
                     RouteHome -> LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(9.dp),
                     ) {
-                        items(SampleFeed.categories) { name ->
+                        items(ui.tabs, key = { it.first.name }) { (scope, title) ->
                             GlassChip(
-                                label = name,
-                                selected = name == category,
-                                onClick = { category = name },
+                                label = title,
+                                selected = scope == ui.scope,
+                                onClick = { vm.selectScope(scope) },
                             )
                         }
                     }
 
-                    RouteDiscover -> GlassSearchField(
-                        value = query,
-                        onValueChange = { query = it },
+                    RoutePlaces -> GlassSearchField(
+                        value = placeQuery,
+                        onValueChange = { placeQuery = it },
+                        placeholder = "Search district or city",
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
                 }
             }
         }
 
-        // ---- Bottom chrome ------------------------------------------------------------------
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-        ) {
-            if (isArticle) {
-                val id = entry?.arguments?.getString("id").orEmpty()
-                ArticleActionBar(
-                    backdrop = backdrop,
-                    saved = id in savedIds,
-                    onToggleSave = { if (id in savedIds) savedIds.remove(id) else savedIds.add(id) },
-                )
-            } else {
+        // ---- Bottom chrome ------------------------------------------------------------
+        if (!isStory) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+            ) {
                 GlassNavBar(
                     backdrop = backdrop,
                     items = Tabs,
@@ -369,44 +376,20 @@ private fun AppShell(
     }
 }
 
-@Composable
-private fun ArticleActionBar(
-    backdrop: com.newspro.app.ui.glass.BackdropState,
-    saved: Boolean,
-    onToggleSave: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .liquidGlass(
-                backdrop = backdrop,
-                cornerRadius = PillCorner,
-                style = GlassStyle.Chrome,
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        GlassIconButton(NewsIcons.Listen, "Listen", {})
-        GlassIconButton(
-            icon = if (saved) NewsIcons.BookmarkFilled else NewsIcons.Bookmark,
-            contentDescription = if (saved) "Remove from saved" else "Save",
-            onClick = onToggleSave,
-        )
-        GlassIconButton(NewsIcons.Share, "Share", {})
-    }
-}
-
-private fun titleFor(route: String): String = when (route) {
-    RouteDiscover -> "Discover"
+private fun titleFor(route: String, placeTitle: String): String = when (route) {
+    RoutePlaces -> "Places"
     RouteSaved -> "Saved"
     RouteProfile -> "You"
-    else -> "Today"
+    else -> placeTitle
 }
 
-private fun subtitleFor(route: String): String? = when (route) {
-    RouteHome -> "Thursday, 13 August"
-    RouteDiscover -> "Topics and sources"
+private fun subtitleFor(route: String, ui: com.newspro.app.ui.feed.FeedUiState): String? = when (route) {
+    RouteHome -> when (ui.scope) {
+        FeedScope.DISTRICT -> "Your district"
+        FeedScope.STATE -> "Across the state"
+        FeedScope.NATIONAL -> "Across India"
+    }
+    RoutePlaces -> "Choose where your news comes from"
     RouteSaved -> "Your reading list"
     RouteProfile -> "Account and preferences"
     else -> null

@@ -1,0 +1,213 @@
+package com.newspro.app.ui.feed
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.newspro.app.data.NewsRepository
+import com.newspro.app.data.RemoteNewsRepository
+import com.newspro.app.data.model.Feed
+import com.newspro.app.data.model.FeedScope
+import com.newspro.app.data.model.Place
+import com.newspro.app.data.model.PlaceIndex
+import com.newspro.app.data.model.Story
+import com.newspro.app.data.remote.StoryDto
+import com.newspro.app.data.remote.toDomain
+import com.newspro.app.data.remote.toDto
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
+
+data class FeedUiState(
+    val loading: Boolean = true,
+    val refreshing: Boolean = false,
+    val error: String? = null,
+    val index: PlaceIndex = PlaceIndex(),
+    val scope: FeedScope = FeedScope.DISTRICT,
+    val lang: String = "hi",
+    val stateCode: String? = null,
+    val districtSlug: String? = null,
+    val feed: Feed? = null,
+    /**
+     * Saved stories are stored whole, not as ids. A saved story usually belongs to
+     * a feed the reader is no longer looking at, so an id alone would have nothing
+     * to resolve against — and the list has to work offline.
+     */
+    val saved: List<Story> = emptyList(),
+) {
+    val savedIds: Set<String> get() = saved.mapTo(mutableSetOf()) { it.id }
+
+    val stories: List<Story> get() = feed?.stories.orEmpty()
+
+    /** The three scope tabs, in local → wide order. Missing feeds are dropped. */
+    val tabs: List<Pair<FeedScope, String>>
+        get() = buildList {
+            districtPlace()?.let { add(FeedScope.DISTRICT to it.title) }
+            statePlace()?.let { add(FeedScope.STATE to it.title) }
+            nationalPlace()?.let { add(FeedScope.NATIONAL to it.title) }
+        }
+
+    fun districtPlace(): Place? = index.districts.firstOrNull {
+        it.state == stateCode && it.district == districtSlug && it.lang == lang
+    }
+
+    fun statePlace(): Place? = stateCode?.let { index.stateFeed(it, lang) }
+
+    fun nationalPlace(): Place? = index.nationalFeed(lang)
+
+    fun placeFor(scope: FeedScope): Place? = when (scope) {
+        FeedScope.DISTRICT -> districtPlace()
+        FeedScope.STATE -> statePlace()
+        FeedScope.NATIONAL -> nationalPlace()
+    }
+
+    val currentTitle: String
+        get() = placeFor(scope)?.title ?: "News Pro"
+}
+
+/**
+ * [JvmOverloads] is load-bearing: a Kotlin default parameter does not produce a
+ * plain `(Application)` constructor, and that is the only signature the default
+ * ViewModel factory knows how to call. Without it this crashes at first
+ * composition. The repository stays injectable for tests.
+ */
+class FeedViewModel @JvmOverloads constructor(
+    app: Application,
+    private val repo: NewsRepository = RemoteNewsRepository(app),
+) : AndroidViewModel(app) {
+
+    private val prefs = app.getSharedPreferences("newspro", android.content.Context.MODE_PRIVATE)
+
+    private val _state = MutableStateFlow(
+        FeedUiState(
+            lang = prefs.getString(KEY_LANG, "hi") ?: "hi",
+            stateCode = prefs.getString(KEY_STATE, null),
+            districtSlug = prefs.getString(KEY_DISTRICT, null),
+            saved = readSaved(),
+        )
+    )
+    val state: StateFlow<FeedUiState> = _state.asStateFlow()
+
+    init {
+        bootstrap()
+    }
+
+    private fun bootstrap() {
+        viewModelScope.launch {
+            _state.update { it.copy(loading = true, error = null) }
+            repo.placeIndex()
+                .onSuccess { index ->
+                    val current = _state.value
+                    // First launch: settle on a sensible default rather than an
+                    // empty screen — the first live state, and its first district.
+                    val stateCode = current.stateCode
+                        ?: index.activeStates.firstOrNull()
+                        ?: index.states.firstOrNull()?.state
+                    val district = current.districtSlug
+                        ?: stateCode?.let { index.districtsIn(it, current.lang).firstOrNull()?.district }
+
+                    _state.update {
+                        it.copy(index = index, stateCode = stateCode, districtSlug = district)
+                    }
+                    loadFeed(_state.value.scope)
+                }
+                .onFailure { err ->
+                    _state.update {
+                        it.copy(loading = false, error = err.message ?: "Could not reach the feed")
+                    }
+                }
+        }
+    }
+
+    fun selectScope(scope: FeedScope) {
+        if (_state.value.scope == scope) return
+        _state.update { it.copy(scope = scope) }
+        loadFeed(scope)
+    }
+
+    fun selectDistrict(place: Place) {
+        prefs.edit()
+            .putString(KEY_STATE, place.state)
+            .putString(KEY_DISTRICT, place.district)
+            .apply()
+        _state.update {
+            it.copy(stateCode = place.state, districtSlug = place.district, scope = FeedScope.DISTRICT)
+        }
+        loadFeed(FeedScope.DISTRICT)
+    }
+
+    fun refresh() {
+        _state.update { it.copy(refreshing = true) }
+        loadFeed(_state.value.scope)
+    }
+
+    fun retry() = bootstrap()
+
+    private fun loadFeed(scope: FeedScope) {
+        val place = _state.value.placeFor(scope)
+        if (place == null) {
+            _state.update { it.copy(loading = false, refreshing = false, feed = null) }
+            return
+        }
+        viewModelScope.launch {
+            _state.update { it.copy(loading = it.feed == null, error = null) }
+            repo.feed(place)
+                .onSuccess { feed ->
+                    _state.update { it.copy(feed = feed, loading = false, refreshing = false, error = null) }
+                }
+                .onFailure { err ->
+                    _state.update {
+                        it.copy(
+                            loading = false,
+                            refreshing = false,
+                            error = err.message ?: "Could not load ${place.title}",
+                        )
+                    }
+                }
+        }
+    }
+
+    fun toggleSaved(id: String) {
+        val story = storyById(id) ?: return
+        _state.update { current ->
+            val next = if (current.saved.any { it.id == id }) {
+                current.saved.filterNot { it.id == id }
+            } else {
+                listOf(story) + current.saved
+            }
+            writeSaved(next)
+            current.copy(saved = next)
+        }
+    }
+
+    /** Looks in the live feed first, then in saved — a saved story outlives its feed. */
+    fun storyById(id: String): Story? =
+        _state.value.stories.firstOrNull { it.id == id }
+            ?: _state.value.saved.firstOrNull { it.id == id }
+
+    private fun readSaved(): List<Story> {
+        val raw = prefs.getString(KEY_SAVED, null) ?: return emptyList()
+        return runCatching {
+            json.decodeFromString(ListSerializer(StoryDto.serializer()), raw).map { it.toDomain() }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun writeSaved(stories: List<Story>) {
+        val dto = stories.map { it.toDto() }
+        val raw = runCatching {
+            json.encodeToString(ListSerializer(StoryDto.serializer()), dto)
+        }.getOrNull() ?: return
+        prefs.edit().putString(KEY_SAVED, raw).apply()
+    }
+
+    private companion object {
+        const val KEY_LANG = "lang"
+        const val KEY_STATE = "state"
+        const val KEY_DISTRICT = "district"
+        const val KEY_SAVED = "saved_stories"
+        val json = Json { ignoreUnknownKeys = true }
+    }
+}

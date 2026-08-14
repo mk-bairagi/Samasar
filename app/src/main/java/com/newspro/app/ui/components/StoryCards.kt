@@ -1,10 +1,7 @@
 package com.newspro.app.ui.components
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -27,11 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.newspro.app.data.Article
+import coil.compose.SubcomposeAsyncImage
+import com.newspro.app.data.model.Story
 import com.newspro.app.ui.glass.GlassStyle
 import com.newspro.app.ui.glass.PillCorner
 import com.newspro.app.ui.glass.backdrop
@@ -39,22 +38,20 @@ import com.newspro.app.ui.glass.liquidGlass
 import com.newspro.app.ui.glass.pressBounce
 import com.newspro.app.ui.glass.rememberBackdrop
 import com.newspro.app.ui.theme.NewsTheme
-import com.newspro.app.ui.theme.categoryGradient
 import androidx.compose.material3.Icon as M3Icon
 
 /**
  * Neutral surface for feed content.
  *
- * Content is deliberately *not* glass. Glass belongs to the floating chrome; if every card
- * refracted as well, nothing would read as being in front of anything else and the hierarchy
- * would collapse. Cards get a quiet translucent plate instead.
+ * Content is deliberately not glass. Glass belongs to the floating chrome; if every
+ * card refracted as well, nothing would read as being in front of anything else.
  */
 @Composable
 fun Modifier.contentSurface(radius: Dp = 24.dp): Modifier {
     val colors = NewsTheme.colors
     val shape = RoundedCornerShape(radius)
-    // Dark theme lifts the card off the page with a wash of the text colour; light theme has to
-    // do the opposite and lay down white, or the "lift" reads as a grey smear over the page.
+    // Dark theme lifts a card off the page with a wash of the text colour; light
+    // theme has to do the opposite and lay down white, or the lift reads as grey.
     val plate = if (colors.isDark) {
         colors.textPrimary.copy(alpha = 0.055f)
     } else {
@@ -67,48 +64,86 @@ fun Modifier.contentSurface(radius: Dp = 24.dp): Modifier {
 }
 
 /**
+ * A story's picture, falling back to generated artwork.
+ *
+ * Many RSS items carry no image at all, and a grey placeholder would read as a
+ * broken card. The generated fallback keeps every card looking deliberate.
+ */
+@Composable
+fun StoryImage(
+    story: Story,
+    modifier: Modifier = Modifier,
+    scrimStrength: Float = 0f,
+) {
+    val fallback: @Composable () -> Unit = {
+        StoryArtwork(
+            seed = story.id,
+            paletteKey = story.source,
+            scrimStrength = scrimStrength,
+        )
+    }
+
+    if (story.imageUrl.isNullOrBlank()) {
+        Box(modifier) { fallback() }
+        return
+    }
+
+    Box(modifier) {
+        SubcomposeAsyncImage(
+            model = story.imageUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+            loading = { fallback() },
+            error = { fallback() },
+        )
+        if (scrimStrength > 0f) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            0.35f to Color.Transparent,
+                            1.00f to Color.Black.copy(alpha = 0.75f * scrimStrength),
+                        ),
+                    ),
+            )
+        }
+    }
+}
+
+/**
  * The lead story.
  *
- * This card carries its own backdrop: the artwork is recorded as the source layer and the caption
- * panel is real liquid glass sampling it. So the panel bends the picture behind it — the same
- * effect as the chrome, scoped to one card.
+ * This card carries its own backdrop: the image is recorded as the source layer
+ * and the caption panel is real liquid glass sampling it, so the panel bends the
+ * picture behind it.
  */
 @Composable
 fun HeroStoryCard(
-    article: Article,
+    story: Story,
+    lang: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val colors = NewsTheme.colors
     val local = rememberBackdrop()
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(430.dp)
+            .height(410.dp)
             .pressBounce(pressedScale = 0.978f, onClick = onClick)
             .clip(RoundedCornerShape(30.dp)),
     ) {
         Box(Modifier.fillMaxSize().backdrop(local)) {
-            ArticleArtwork(
-                seed = article.id,
-                category = article.category,
-                modifier = Modifier.fillMaxSize(),
-                scrimStrength = 0.55f,
-            )
+            StoryImage(story, Modifier.fillMaxSize(), scrimStrength = 0.5f)
         }
 
-        CategoryPill(
-            category = article.category,
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(18.dp),
-        )
-
-        if (article.isLive) {
-            LiveBadge(
+        if (story.sourceCount > 1) {
+            SourceCountBadge(
+                count = story.sourceCount,
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
+                    .align(Alignment.TopStart)
                     .padding(18.dp),
             )
         }
@@ -124,7 +159,7 @@ fun HeroStoryCard(
                     style = GlassStyle.Regular.copy(
                         blur = 24.dp,
                         refraction = 15.dp,
-                        // Dark tint: the artwork underneath is bright, and the headline is white.
+                        // The picture underneath is bright and the headline is white.
                         tintOverride = Color.Black,
                         tintAlpha = 0.34f,
                         saturation = 1.15f,
@@ -135,30 +170,35 @@ fun HeroStoryCard(
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Text(
-                text = article.title,
+                text = story.title,
                 style = MaterialTheme.typography.headlineLarge,
                 color = Color.White,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = article.summary,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.80f),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            MetaLine(article, tint = Color.White.copy(alpha = 0.72f))
+            if (story.summary.isNotBlank()) {
+                Text(
+                    text = story.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.82f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            StoryMeta(story, lang, tint = Color.White.copy(alpha = 0.75f))
         }
     }
 }
 
-/** Standard feed row: thumbnail, headline, meta. */
+/** Standard feed row. */
 @Composable
 fun StoryRow(
-    article: Article,
+    story: Story,
+    lang: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    saved: Boolean = false,
+    onToggleSave: (() -> Unit)? = null,
 ) {
     val colors = NewsTheme.colors
     Row(
@@ -169,38 +209,55 @@ fun StoryRow(
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Box(
+        StoryImage(
+            story,
             Modifier
                 .size(92.dp)
                 .clip(RoundedCornerShape(15.dp)),
-        ) {
-            ArticleArtwork(seed = article.id, category = article.category)
-        }
+        )
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Text(
-                text = article.category.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = categoryGradient(article.category)[0],
-            )
-            Text(
-                text = article.title,
+                text = story.title,
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textPrimary,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
-            MetaLine(article, tint = colors.textTertiary)
+            StoryMeta(story, lang, tint = colors.textTertiary)
+        }
+        if (onToggleSave != null) {
+            val scale by animateFloatAsState(
+                targetValue = if (saved) 1f else 0.92f,
+                animationSpec = spring(dampingRatio = 0.45f, stiffness = 700f),
+                label = "saveScale",
+            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .pressBounce(pressedScale = 0.85f) { onToggleSave() },
+                contentAlignment = Alignment.Center,
+            ) {
+                M3Icon(
+                    imageVector = if (saved) NewsIcons.BookmarkFilled else NewsIcons.Bookmark,
+                    contentDescription = if (saved) "Remove from saved" else "Save",
+                    tint = if (saved) colors.accent else colors.textTertiary,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .graphicsLayer { scaleX = scale; scaleY = scale },
+                )
+            }
         }
     }
 }
 
-/** Wide card used in horizontal carousels. */
+/** Wide card used in the horizontal carousel. */
 @Composable
 fun BriefingCard(
-    article: Article,
+    story: Story,
+    lang: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -211,32 +268,32 @@ fun BriefingCard(
             .pressBounce(pressedScale = 0.965f, onClick = onClick)
             .contentSurface(24.dp),
     ) {
-        Box(
+        StoryImage(
+            story,
             Modifier
                 .fillMaxWidth()
                 .height(130.dp),
-        ) {
-            ArticleArtwork(seed = article.id, category = article.category)
-        }
+        )
         Column(
             modifier = Modifier.padding(15.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = article.title,
+                text = story.title,
                 style = MaterialTheme.typography.titleMedium,
                 color = colors.textPrimary,
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis,
             )
-            MetaLine(article, tint = colors.textTertiary)
+            StoryMeta(story, lang, tint = colors.textTertiary)
         }
     }
 }
 
 @Composable
-fun MetaLine(
-    article: Article,
+fun StoryMeta(
+    story: Story,
+    lang: String,
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -246,29 +303,35 @@ fun MetaLine(
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Text(
-            text = article.source,
+            text = story.source,
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = tint,
             maxLines = 1,
             softWrap = false,
         )
-        Dot(tint)
-        Text(
-            text = article.publishedAgo,
-            style = MaterialTheme.typography.labelMedium,
-            color = tint,
-            maxLines = 1,
-            softWrap = false,
-        )
-        Dot(tint)
-        Text(
-            text = "${article.readMinutes} min",
-            style = MaterialTheme.typography.labelMedium,
-            color = tint,
-            maxLines = 1,
-            softWrap = false,
-        )
+        val time = relativeTime(story.publishedAt, lang)
+        if (time.isNotEmpty()) {
+            Dot(tint)
+            Text(
+                text = time,
+                style = MaterialTheme.typography.labelMedium,
+                color = tint,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+        if (story.sourceCount > 1) {
+            Dot(tint)
+            Text(
+                text = "${story.sourceCount} sources",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = tint,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
     }
 }
 
@@ -282,52 +345,34 @@ private fun Dot(tint: Color) {
     )
 }
 
+/**
+ * How many independent publishers carried this story.
+ *
+ * This is the corroboration signal surfaced honestly. A story ten papers agree on
+ * is a different thing from one nobody else has, and the reader gets to see which.
+ */
 @Composable
-fun CategoryPill(
-    category: String,
+fun SourceCountBadge(
+    count: Int,
     modifier: Modifier = Modifier,
 ) {
-    val gradient = categoryGradient(category)
-    Text(
-        text = category.uppercase(),
-        style = MaterialTheme.typography.labelSmall,
-        color = Color.White,
-        modifier = modifier
-            .clip(RoundedCornerShape(PillCorner))
-            .background(gradient[0].copy(alpha = 0.85f))
-            .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(PillCorner))
-            .padding(horizontal = 11.dp, vertical = 5.dp),
-    )
-}
-
-/** Pulsing indicator for stories still developing. */
-@Composable
-fun LiveBadge(modifier: Modifier = Modifier) {
-    val transition = rememberInfiniteTransition(label = "live")
-    val pulse by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse),
-        label = "pulse",
-    )
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(PillCorner))
-            .background(Color.Black.copy(alpha = 0.42f))
-            .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(PillCorner))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .background(Color.Black.copy(alpha = 0.45f))
+            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(PillCorner))
+            .padding(horizontal = 11.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(
-            Modifier
-                .size(6.dp)
-                .graphicsLayer { alpha = pulse }
-                .clip(RoundedCornerShape(PillCorner))
-                .background(Color(0xFFFF4D5E)),
+        M3Icon(
+            imageVector = NewsIcons.Check,
+            contentDescription = null,
+            tint = Color(0xFF6BE39A),
+            modifier = Modifier.size(11.dp),
         )
         Text(
-            text = "LIVE",
+            text = "$count SOURCES",
             style = MaterialTheme.typography.labelSmall,
             color = Color.White,
         )
