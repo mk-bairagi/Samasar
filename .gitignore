@@ -38,3 +38,6 @@ backend/public/
 backend/.venv/
 __pycache__/
 *.pyc
+
+# Icon comparison renders — working files, not sources
+icon-preview/
