@@ -2,9 +2,10 @@
 
 **समाचार, आपके जिले से** — local news for Madhya Pradesh.
 
-Samasar gathers headlines from over 120 Indian news sources and organises them the
-way a reader actually wants them: **your district first, then your state, then
-India**. All 50 Madhya Pradesh districts are covered, in Hindi.
+Samasar gathers headlines from over 120 Indian news sources and organises them by
+how close they are to you: **India, then your state, then your own district** —
+three scopes, one tap apart. All 50 Madhya Pradesh districts are covered, in
+Hindi.
 
 Stories carried by several publishers are grouped together, so you can see at a
 glance how many independent outlets are reporting something — and read whichever

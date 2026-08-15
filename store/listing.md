@@ -20,13 +20,13 @@ actually matches against.*
 
 **English**
 ```
-News from all 50 Madhya Pradesh districts. Your city first, then MP, then India.
+India, Madhya Pradesh and all 50 MP districts. Hindi news, no ads, no tracking.
 ```
-*(80 exactly — Play rejects 81)*
+*(79 of 80)*
 
 **Hindi**
 ```
-मध्य प्रदेश के सभी 50 जिलों की खबरें। पहले आपका शहर, फिर प्रदेश, फिर देश।
+भारत, मध्य प्रदेश और सभी 50 जिलों की खबरें। हिंदी में, बिना विज्ञापन।
 ```
 
 ---
@@ -36,17 +36,19 @@ News from all 50 Madhya Pradesh districts. Your city first, then MP, then India.
 **English**
 
 ```
-Samasar brings you news from where you actually live.
+Samasar covers the country, your state and your own city — in that order, one
+tap apart.
 
-Most news apps show you the country. Samasar starts with your district — all 50
-in Madhya Pradesh, from Indore and Bhopal to Neemuch, Dindori and Sheopur — and
-then widens out to the state and the nation. Three taps, three scopes, in that
-order.
+Open the app and you get India. Tap again for Madhya Pradesh. Tap again for your
+own district: all 50 of them, from Indore and Bhopal to Neemuch, Dindori and
+Sheopur. Most news apps stop at the first of those three. Samasar goes all the
+way down to yours.
 
 WHY IT IS DIFFERENT
 
-• YOUR DISTRICT FIRST
-  Choose your district once. Local reporting leads every time you open the app.
+• THREE SCOPES, ONE TAP APART
+  India, Madhya Pradesh, your district. Choose your district once and it stays
+  a single tap away, every time.
 
 • SEE HOW MANY SOURCES AGREE
   When several publishers carry the same story, Samasar groups them into one and
@@ -89,16 +91,16 @@ English and Gujarati.
 **Hindi**
 
 ```
-समसार आपको वहाँ की खबरें देता है जहाँ आप रहते हैं।
+समसार देश, प्रदेश और आपके अपने शहर — तीनों की खबरें देता है, इसी क्रम में।
 
-ज़्यादातर न्यूज़ ऐप देश की खबरें दिखाते हैं। समसार आपके जिले से शुरू होता है —
-मध्य प्रदेश के सभी 50 जिले, इंदौर और भोपाल से लेकर नीमच, डिंडोरी और श्योपुर तक —
-फिर प्रदेश, फिर देश।
+ऐप खोलिए, भारत की खबरें मिलेंगी। एक टैप और — मध्य प्रदेश। एक टैप और — आपका अपना
+जिला, सभी 50 जिले, इंदौर और भोपाल से लेकर नीमच, डिंडोरी और श्योपुर तक। ज़्यादातर
+ऐप पहले पर ही रुक जाते हैं। समसार आपके शहर तक जाता है।
 
 क्या खास है
 
-• पहले आपका जिला
-  एक बार अपना जिला चुनिए। हर बार ऐप खोलने पर स्थानीय खबरें सबसे ऊपर।
+• तीन स्तर, एक-एक टैप दूर
+  भारत, मध्य प्रदेश, आपका जिला। एक बार जिला चुनिए, फिर वह हमेशा एक टैप दूर रहेगा।
 
 • कितने स्रोत सहमत हैं, यह दिखता है
   जब एक ही खबर कई अखबार छापते हैं, समसार उन्हें एक साथ जोड़कर संख्या दिखाता है।
@@ -176,11 +178,15 @@ limits):
 | File | Suggested caption |
 |---|---|
 | `1-onboarding.png` | Choose your district once |
-| `2-district-feed.png` | Your city's news, first |
-| `3-story-list.png` | Headlines from 120+ sources |
-| `4-story-detail.png` | Read at the publisher |
-| `5-national.png` | Widen out to MP and India |
-| `6-places.png` | All 50 MP districts |
+| `2-national.png` | Opens on India |
+| `3-state.png` | One tap for Madhya Pradesh |
+| `4-district.png` | One more for your own city |
+| `5-story-list.png` | Headlines from 120+ sources |
+| `6-story-detail.png` | Told when only one source has it |
+| `7-places.png` | All 50 MP districts |
+
+Order matters here — 2, 3 and 4 are the same screen at each scope, and read as a
+sequence that demonstrates the whole idea.
 
 Play requires at least 2. Captions are optional and added in Play Console, not
 baked into the image.

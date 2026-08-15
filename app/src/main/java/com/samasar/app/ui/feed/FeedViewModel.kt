@@ -30,7 +30,8 @@ data class FeedUiState(
     val refreshing: Boolean = false,
     val error: String? = null,
     val index: PlaceIndex = PlaceIndex(),
-    val scope: FeedScope = FeedScope.DISTRICT,
+    /** Every launch opens on Bharat; the reader widens down to their own district. */
+    val scope: FeedScope = FeedScope.NATIONAL,
     val lang: String = "hi",
     val stateCode: String? = null,
     val districtSlug: String? = null,
@@ -58,12 +59,12 @@ data class FeedUiState(
     val emptiedByFilter: Boolean
         get() = stories.isEmpty() && feed?.stories?.isNotEmpty() == true
 
-    /** The three scope tabs, in local → wide order. Missing feeds are dropped. */
+    /** The three scope tabs, in wide → local order. Missing feeds are dropped. */
     val tabs: List<Pair<FeedScope, String>>
         get() = buildList {
-            districtPlace()?.let { add(FeedScope.DISTRICT to it.title) }
-            statePlace()?.let { add(FeedScope.STATE to it.title) }
             nationalPlace()?.let { add(FeedScope.NATIONAL to it.title) }
+            statePlace()?.let { add(FeedScope.STATE to it.title) }
+            districtPlace()?.let { add(FeedScope.DISTRICT to it.title) }
         }
 
     fun districtPlace(): Place? = index.districts.firstOrNull {
@@ -150,20 +151,27 @@ class FeedViewModel @JvmOverloads constructor(
         loadFeed(scope)
     }
 
-    fun selectDistrict(place: Place) {
+    /**
+     * Records where the reader is. [focus] decides whether to jump to that
+     * district's feed as well: true when they tapped a place deliberately, false
+     * at onboarding, where the question is only "where are you?" and the feed
+     * should open on Bharat like every other launch.
+     */
+    fun selectDistrict(place: Place, focus: Boolean = true) {
         prefs.edit()
             .putString(KEY_STATE, place.state)
             .putString(KEY_DISTRICT, place.district)
             .apply()
+        val scope = if (focus) FeedScope.DISTRICT else _state.value.scope
         _state.update {
             it.copy(
                 stateCode = place.state,
                 districtSlug = place.district,
-                scope = FeedScope.DISTRICT,
+                scope = scope,
                 needsOnboarding = false,
             )
         }
-        loadFeed(FeedScope.DISTRICT)
+        loadFeed(scope)
     }
 
     fun setCompact(value: Boolean) {

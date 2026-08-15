@@ -85,7 +85,7 @@ private val Tabs = listOf(
 
 @Composable
 fun SamasarApp() {
-    var darkTheme by rememberSaveable { mutableStateOf(true) }
+    var darkTheme by rememberSaveable { mutableStateOf(false) }
 
     // Bars are transparent and content runs underneath, so their icons have to
     // invert with the theme or they disappear against the page.
@@ -154,7 +154,7 @@ private fun AppShell(
                 lang = ui.lang,
                 loading = ui.loading,
                 error = ui.error,
-                onSelect = vm::selectDistrict,
+                onSelect = { vm.selectDistrict(it, focus = false) },
                 onRetry = vm::retry,
             )
         }
@@ -183,6 +183,7 @@ private fun AppShell(
                     HomeScreen(
                         stories = ui.stories,
                         lang = ui.lang,
+                        scope = ui.scope,
                         stateName = ui.statePlace()?.title,
                         savedIds = ui.savedIds,
                         compact = ui.compact,
@@ -345,7 +346,7 @@ private fun AppShell(
                 )
 
                 when (route) {
-                    // Scope tabs: local → state → national. This is the primary
+                    // Scope tabs: national → state → district. This is the primary
                     // navigation for a regional reader, so it sits in the chrome.
                     RouteHome -> LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp),

@@ -83,8 +83,8 @@ fun OnboardingScreen(
                 color = colors.textPrimary,
             )
             Text(
-                text = "Choose your district. Local news comes first, then your state, " +
-                    "then India. You can change this any time.",
+                text = "Choose your district. You will get news from India, then your " +
+                    "state, then your own city. You can change this any time.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.textSecondary,
             )

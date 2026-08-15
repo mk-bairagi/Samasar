@@ -21,7 +21,7 @@ object NewsTheme {
 
 @Composable
 fun SamasarTheme(
-    darkTheme: Boolean = true,
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val target = if (darkTheme) DarkNewsColors else LightNewsColors

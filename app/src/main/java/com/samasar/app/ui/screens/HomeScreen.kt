@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.samasar.app.data.model.FeedScope
 import com.samasar.app.data.model.Story
 import com.samasar.app.ui.components.BriefingCard
 import com.samasar.app.ui.components.HeroStoryCard
@@ -36,6 +37,7 @@ import androidx.compose.material3.Icon as M3Icon
 fun HomeScreen(
     stories: List<Story>,
     lang: String,
+    scope: FeedScope,
     stateName: String?,
     savedIds: Set<String>,
     compact: Boolean,
@@ -71,13 +73,16 @@ fun HomeScreen(
     }
 
     // A quiet district gets topped up with state coverage. Keep the two apart so
-    // the reader is never shown state news dressed as local news.
-    val local = stories.filter { it.origin != "state" }
-    val fromState = stories.filter { it.origin == "state" }
+    // the reader is never shown state news dressed as local news. Only a district
+    // feed is ever topped up: the publisher tags every story with its own scope,
+    // so on the state feed "origin" is uniformly "state" and means nothing.
+    val topUpApplies = scope == FeedScope.DISTRICT
+    val local = if (topUpApplies) stories.filter { it.origin != "state" } else stories
+    val fromState = if (topUpApplies) stories.filter { it.origin == "state" } else emptyList()
 
     // When a district has nothing of its own, the feed is entirely state coverage.
     // Say so at the top rather than letting it pass as local news.
-    val allFromState = local.isEmpty()
+    val allFromState = topUpApplies && local.isEmpty()
     val primary = local.ifEmpty { fromState }
     // Compact drops the hero card and the carousel entirely — those are what cost
     // the screen space, and "more headlines per screen" is the whole point.
