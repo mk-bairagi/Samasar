@@ -16,11 +16,11 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "com.newspro.app"
+    namespace = "com.samasar.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.newspro.app"
+        applicationId = "com.samasar.app"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
