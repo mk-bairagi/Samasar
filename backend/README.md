@@ -1,4 +1,4 @@
-# News Pro — ingestion pipeline
+# Samasar — ingestion pipeline
 
 Fetches Indian news from ~95 verified RSS feeds, deduplicates, clusters the same
 story across publishers, and emits precomputed JSON the Android app reads directly.
@@ -176,7 +176,7 @@ Three rules this obeys, and they are not optional:
 
 1. **robots.txt is checked before any request**, per host, and a disallow skips the
    source. It fails closed: if the rules cannot be read, nothing is fetched.
-   Verified working — the gate permits `NewsProBot` and refuses `GPTBot`, `CCBot`
+   Verified working — the gate permits `SamasarBot` and refuses `GPTBot`, `CCBot`
    and `ClaudeBot` exactly as Neemuch Today's robots.txt specifies.
 2. **Headline and link only.** No article bodies are fetched or stored. The reader
    goes to the publisher, which is the same deal every RSS source gets.

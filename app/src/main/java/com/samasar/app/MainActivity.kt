@@ -6,7 +6,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import android.graphics.Color as AndroidColor
-import com.samasar.app.ui.NewsProApp
+import com.samasar.app.ui.SamasarApp
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         )
         super.onCreate(savedInstanceState)
         setContent {
-            NewsProApp()
+            SamasarApp()
         }
     }
 }

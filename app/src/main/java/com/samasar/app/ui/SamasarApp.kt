@@ -68,7 +68,7 @@ import com.samasar.app.ui.screens.Preference
 import com.samasar.app.ui.screens.ProfileScreen
 import com.samasar.app.ui.screens.SavedScreen
 import com.samasar.app.ui.screens.StoryScreen
-import com.samasar.app.ui.theme.NewsProTheme
+import com.samasar.app.ui.theme.SamasarTheme
 
 private const val RouteHome = "home"
 private const val RoutePlaces = "places"
@@ -84,7 +84,7 @@ private val Tabs = listOf(
 )
 
 @Composable
-fun NewsProApp() {
+fun SamasarApp() {
     var darkTheme by rememberSaveable { mutableStateOf(true) }
 
     // Bars are transparent and content runs underneath, so their icons have to
@@ -100,7 +100,7 @@ fun NewsProApp() {
         }
     }
 
-    NewsProTheme(darkTheme = darkTheme) {
+    SamasarTheme(darkTheme = darkTheme) {
         AppShell(darkTheme = darkTheme, onToggleTheme = { darkTheme = it })
     }
 }

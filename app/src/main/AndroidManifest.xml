@@ -13,14 +13,14 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:hardwareAccelerated="true"
-        android:theme="@style/Theme.NewsPro">
+        android:theme="@style/Theme.Samasar">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.NewsPro">
+            android:theme="@style/Theme.Samasar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

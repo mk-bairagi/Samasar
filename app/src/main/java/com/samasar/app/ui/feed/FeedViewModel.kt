@@ -97,7 +97,7 @@ class FeedViewModel @JvmOverloads constructor(
 
     private var undoJob: Job? = null
 
-    private val prefs = app.getSharedPreferences("newspro", android.content.Context.MODE_PRIVATE)
+    private val prefs = app.getSharedPreferences("samasar", android.content.Context.MODE_PRIVATE)
 
     private val _state = MutableStateFlow(
         FeedUiState(

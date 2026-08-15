@@ -21,7 +21,7 @@ from .models import Feed
 
 log = logging.getLogger(__name__)
 
-BOT_UA = "NewsProBot/0.1 (+https://github.com/mk-bairagi/News-Pro)"
+BOT_UA = "SamasarBot/0.1 (+https://github.com/mk-bairagi/Samasar)"
 MAX_PER_HOST = 4
 
 # One publisher can serve fifty of our feeds — Patrika covers every MP district.

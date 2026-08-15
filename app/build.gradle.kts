@@ -48,7 +48,7 @@ android {
             buildConfigField(
                 "String",
                 "FEED_BASE_URL",
-                "\"https://raw.githubusercontent.com/mk-bairagi/News-Pro/feeds/\"",
+                "\"https://raw.githubusercontent.com/mk-bairagi/Samasar/feeds/\"",
             )
         }
         release {
@@ -58,7 +58,7 @@ android {
             buildConfigField(
                 "String",
                 "FEED_BASE_URL",
-                "\"https://raw.githubusercontent.com/mk-bairagi/News-Pro/feeds/\"",
+                "\"https://raw.githubusercontent.com/mk-bairagi/Samasar/feeds/\"",
             )
             isMinifyEnabled = true
             isShrinkResources = true

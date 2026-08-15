@@ -1,4 +1,4 @@
-# News Pro
+# Samasar
 
 A news reader for Android built around a real liquid-glass material — not a translucent
 rectangle, but an optical model with refraction, chromatic dispersion and a lit rim.

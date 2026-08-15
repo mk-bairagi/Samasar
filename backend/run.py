@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""News Pro ingestion pipeline.
+"""Samasar ingestion pipeline.
 
     python run.py ingest    fetch → parse → dedupe → cluster → publish
     python run.py health    report feeds that are failing
@@ -30,7 +30,7 @@ BASE = Path(__file__).resolve().parent
 DB_PATH = BASE / "data" / "news.db"
 OUT_DIR = BASE / "public"
 
-log = logging.getLogger("newspro")
+log = logging.getLogger("samasar")
 
 
 def setup_logging(verbose: bool) -> None:
@@ -96,7 +96,7 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     # ---- Sites with no feed, read from HTML and only where robots.txt allows.
     scrapers = reg.scrapers(only_active=not args.all_states)
     if scrapers and not args.no_scrape:
-        gate = RobotsGate(user_agent="NewsProBot", timeout=reg.timeout)
+        gate = RobotsGate(user_agent="SamasarBot", timeout=reg.timeout)
         for feed, config in scrapers:
             if not gate.allows(feed.url):
                 log.warning("  ⊘ %-26s robots.txt disallows — skipped", feed.id)
@@ -200,7 +200,7 @@ def cmd_stats(_: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    p = argparse.ArgumentParser(description="News Pro ingestion")
+    p = argparse.ArgumentParser(description="Samasar ingestion")
     p.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="cmd", required=True)
 

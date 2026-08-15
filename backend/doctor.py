@@ -45,7 +45,7 @@ HREF_RE = re.compile(r'href=["\']([^"\']+)["\']', re.I)
 
 def probe(url: str, ua: str, timeout: int = 12) -> tuple[bool, int, str]:
     """Return (healthy, item_count, note)."""
-    for agent in (ua, "NewsProBot/0.1"):
+    for agent in (ua, "SamasarBot/0.1"):
         try:
             r = requests.get(url, headers={"User-Agent": agent}, timeout=timeout, allow_redirects=True)
         except Exception as exc:  # noqa: BLE001

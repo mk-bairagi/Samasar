@@ -20,7 +20,7 @@ object NewsTheme {
 }
 
 @Composable
-fun NewsProTheme(
+fun SamasarTheme(
     darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
