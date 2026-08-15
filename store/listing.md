@@ -7,12 +7,14 @@ Everything below is ready to paste into Play Console. Character limits are Googl
 ## App name (30 char max)
 
 ```
-Samasar: MP Local News
+Samasar
 ```
 
-*22 characters. "Samasar" alone is more brandable, but a first app has no
-reputation to search on — the extra words are what a reader typing "MP news"
-actually matches against.*
+*The name can be changed at any time after publishing, so it is worth revisiting
+once there is install data. The cost of the bare name is search: nobody typing
+"MP news" matches "Samasar". The short description below carries those words
+instead, and Play indexes it — so the keywords are not lost, just moved out of
+the name.*
 
 ---
 
