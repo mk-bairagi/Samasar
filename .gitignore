@@ -22,9 +22,12 @@ captures/
 *.ap_
 *.dex
 
-# Signing material — never commit these
+# Signing material — never commit these.
+# Losing the keystore means never being able to update the published app again,
+# so it lives outside git and must be backed up somewhere durable.
 *.jks
 *.keystore
+keystore.properties
 
 # macOS
 .DS_Store
