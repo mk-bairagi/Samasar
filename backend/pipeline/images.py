@@ -47,11 +47,12 @@ _CONTENT_RE = re.compile(r"""content\s*=\s*["']([^"']+)["']""", re.I)
 # wastes bandwidth on both ends.
 _HEAD_BYTES = 200_000
 
-# A run that would fetch thousands of pages means something upstream changed.
-# Cap it so a bad day costs a few missing thumbnails, not an hour of requests.
 # The cap only bites while catching up: an image, once found, is stored, so a
-# settled run only looks up articles that arrived since the last one.
-DEFAULT_BUDGET = 400
+# settled run only looks up the articles that arrived since the last one, which
+# is a few dozen. Sized against the workflow's 20-minute timeout — 1000 lookups
+# take roughly six minutes — so a backlog drains in a couple of runs while a
+# runaway still cannot eat the job.
+DEFAULT_BUDGET = 1000
 
 # A thumbnail is a nice-to-have, so a slow page is not worth waiting on. The feed
 # timeout is generous because a missing feed costs a whole publisher; here a

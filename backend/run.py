@@ -230,7 +230,7 @@ def main() -> int:
     ing.add_argument("--workers", type=int, default=12)
     ing.add_argument("--no-scrape", action="store_true", help="skip HTML sources")
     ing.add_argument("--no-images", action="store_true", help="skip og:image lookups")
-    ing.add_argument("--image-budget", type=int, default=400, help="max article pages read per run for images")
+    ing.add_argument("--image-budget", type=int, default=1000, help="max article pages read per run for images")
     ing.add_argument("--window-hours", type=int, default=36, help="national/state freshness window")
     ing.add_argument("--district-days", type=int, default=7, help="district freshness window")
     ing.add_argument("--retain-days", type=int, default=21)
