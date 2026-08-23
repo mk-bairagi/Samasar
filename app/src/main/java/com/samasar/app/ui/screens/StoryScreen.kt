@@ -103,15 +103,20 @@ fun StoryScreen(
 
                 // The scrim stays put while the picture drifts, so contrast holds
                 // through the whole travel, and dissolves the image into the page.
+                // The ramp has to carry white text over a *bright* photograph, not
+                // just a dark one — a sunlit crowd or a flower-covered shrine washed
+                // the headline out entirely when the middle of this gradient was
+                // clear. It now starts darkening well above where the title sits.
                 Box(
                     Modifier
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                0.00f to Color.Black.copy(alpha = 0.32f),
-                                0.34f to Color.Transparent,
-                                0.70f to Color.Black.copy(alpha = 0.48f),
-                                0.93f to Color.Black.copy(alpha = 0.72f),
+                                0.00f to Color.Black.copy(alpha = 0.34f),
+                                0.28f to Color.Black.copy(alpha = 0.06f),
+                                0.52f to Color.Black.copy(alpha = 0.34f),
+                                0.74f to Color.Black.copy(alpha = 0.60f),
+                                0.93f to Color.Black.copy(alpha = 0.78f),
                                 1.00f to colors.canvas,
                             ),
                         ),
