@@ -18,6 +18,7 @@ from pathlib import Path
 
 from pipeline.cluster import build_clusters, dedupe, is_lead_eligible, is_publishable
 from pipeline.fetch import Fetcher
+from pipeline.images import ImageBackfill, borrow_within_cluster
 from pipeline.models import Article
 from pipeline.parse import parse_feed
 from pipeline.publish import Publisher
@@ -156,6 +157,24 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         len(publishable), len(clusters) - len(publishable), leads,
     )
 
+    # Several publishers ship no image in their feed at all — Amar Ujala supplies
+    # half of every district feed and is one of them. Recover what we can before
+    # publishing, cheapest source first: borrow from a sibling in the cluster,
+    # then fall back to reading og:image off the article page.
+    if not args.no_images:
+        borrowed = borrow_within_cluster(publishable)
+        missing = [c.lead for c in publishable if not c.lead.image_url]
+        gate = RobotsGate(user_agent="SamasarBot", timeout=reg.timeout)
+        fetched = ImageBackfill(fetcher, gate, budget=args.image_budget).fill(missing)
+        if borrowed or fetched:
+            store.upsert_articles([c.lead for c in publishable])
+            store.db.commit()
+        have = sum(1 for c in publishable if c.lead.image_url)
+        log.info(
+            "images: %d/%d stories have one (%d borrowed, %d looked up)",
+            have, len(publishable), borrowed, fetched,
+        )
+
     expected = reg.expected_districts(only_active=not args.all_states)
     written = Publisher(reg, OUT_DIR).publish(clusters, expected_districts=expected)
     log.info("published: %d files (%d districts guaranteed) → %s", len(written), len(expected), OUT_DIR)
@@ -210,6 +229,8 @@ def main() -> int:
     ing.add_argument("--limit", type=int, default=0, help="cap feeds this run (testing)")
     ing.add_argument("--workers", type=int, default=12)
     ing.add_argument("--no-scrape", action="store_true", help="skip HTML sources")
+    ing.add_argument("--no-images", action="store_true", help="skip og:image lookups")
+    ing.add_argument("--image-budget", type=int, default=400, help="max article pages read per run for images")
     ing.add_argument("--window-hours", type=int, default=36, help="national/state freshness window")
     ing.add_argument("--district-days", type=int, default=7, help="district freshness window")
     ing.add_argument("--retain-days", type=int, default=21)
