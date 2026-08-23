@@ -4,8 +4,13 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- allowBackup is off deliberately. The privacy policy and the store
+         listing both state that nothing about a reader's use leaves their
+         device, and Android Backup would copy the chosen district, saved
+         stories and mute lists to their Google Drive. The cost is re-picking
+         a district on a new phone; the benefit is that the claim is true. -->
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"

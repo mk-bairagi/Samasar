@@ -46,6 +46,7 @@ import com.samasar.app.ui.glass.pressBounce
 import com.samasar.app.ui.glass.PillCorner
 import com.samasar.app.ui.glass.backdrop
 import com.samasar.app.ui.glass.rememberBackdrop
+import androidx.compose.ui.text.style.TextOverflow
 import com.samasar.app.ui.theme.NewsTheme
 import androidx.compose.material3.Icon as M3Icon
 
@@ -62,6 +63,7 @@ data class Preference(
 fun ProfileScreen(
     savedCount: Int,
     placeName: String,
+    stateName: String?,
     sourceCount: Int,
     preferences: List<Preference>,
     filter: FeedFilter,
@@ -108,21 +110,31 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "MB",
+                        // Devanagari matras hang off the preceding consonant, so a
+                        // single codepoint can slice a letter in half. Take the
+                        // first grapheme cluster instead.
+                        text = placeName.firstGrapheme(),
                         style = MaterialTheme.typography.titleLarge,
                         color = Color.White,
                     )
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = "Mayank",
-                        style = MaterialTheme.typography.headlineMedium,
+                        text = placeName,
+                        // titleLarge, not headlineMedium: Devanagari district names
+                        // carry matras above and below the line, so they need more
+                        // vertical and horizontal room per letter than the Latin
+                        // placeholder this card was designed around. At the larger
+                        // size "इंदौर" broke across two lines inside its own card.
+                        style = MaterialTheme.typography.titleLarge,
                         color = colors.textPrimary,
                     )
                     Text(
-                        text = "Reading $placeName",
+                        text = stateName ?: "Your district",
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textTertiary,
+                        maxLines = 1,
+                        softWrap = false,
                     )
                 }
             }
@@ -135,7 +147,7 @@ fun ProfileScreen(
             ) {
                 StatTile("Saved", savedCount.toString(), Modifier.weight(1f))
                 StatTile("Sources", sourceCount.toString(), Modifier.weight(1f))
-                StatTile("Place", placeName.take(8), Modifier.weight(1f))
+                StatTile("Filtered", filter.totalFiltered.toString(), Modifier.weight(1f))
             }
         }
 
@@ -332,6 +344,8 @@ private fun StatTile(
             text = value,
             style = MaterialTheme.typography.headlineMedium,
             color = colors.textPrimary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = label.uppercase(),
@@ -439,3 +453,18 @@ private fun PreferenceCard(
     }
 }
 
+/**
+ * The first *visible* character of a string.
+ *
+ * "इंदौर" begins with इ followed by a combining sign; taking one char would render
+ * a bare consonant or an orphaned matra. BreakIterator walks grapheme clusters,
+ * which is what a reader sees as one letter.
+ */
+private fun String.firstGrapheme(): String {
+    val trimmed = trim()
+    if (trimmed.isEmpty()) return "?"
+    val it = java.text.BreakIterator.getCharacterInstance()
+    it.setText(trimmed)
+    val end = it.next()
+    return if (end == java.text.BreakIterator.DONE) trimmed else trimmed.substring(0, end)
+}

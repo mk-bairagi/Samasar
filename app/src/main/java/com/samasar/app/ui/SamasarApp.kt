@@ -236,6 +236,7 @@ private fun AppShell(
                     ProfileScreen(
                         savedCount = ui.saved.size,
                         placeName = ui.districtPlace()?.title ?: "—",
+                        stateName = ui.statePlace()?.title,
                         sourceCount = ui.stories.sumOf { it.sourceCount },
                         preferences = listOf(
                             Preference(

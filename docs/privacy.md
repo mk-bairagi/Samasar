@@ -1,6 +1,6 @@
 # Privacy Policy — Samasar
 
-**Last updated:** 15 August 2026
+**Last updated:** 23 August 2026
 
 Samasar is a news reader for Madhya Pradesh. This policy explains, plainly, what
 the app does and does not do with information.
@@ -27,6 +27,12 @@ storage. None of it is transmitted anywhere.
 
 Uninstalling Samasar, or clearing its data in Android Settings, removes all of it
 permanently. There is no copy anywhere else.
+
+Android's automatic backup is switched **off** for this app, deliberately. Many
+apps let Android copy their stored data to your Google Drive; Samasar does not,
+so your district, your saved stories and your mute lists never leave the phone
+they were created on. The trade-off is that they do not follow you to a new
+device — you choose your district again, which takes a moment.
 
 ## What Samasar does not collect
 

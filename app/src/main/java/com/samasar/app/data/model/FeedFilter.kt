@@ -22,6 +22,10 @@ data class FeedFilter(
     val mutedSources: Set<String> = emptySet(),
     val mutedKeywords: Set<String> = emptySet(),
 ) {
+    /** Everything the reader has chosen not to see, for a single summary count. */
+    val totalFiltered: Int
+        get() = hiddenIds.size + mutedSources.size + mutedKeywords.size
+
     val isEmpty: Boolean
         get() = hiddenIds.isEmpty() && hiddenUrls.isEmpty() &&
             mutedSources.isEmpty() && mutedKeywords.isEmpty()
