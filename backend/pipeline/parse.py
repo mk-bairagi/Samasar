@@ -36,12 +36,51 @@ def canonical_url(url: str) -> str:
     return urlunparse((p.scheme or "https", netloc, path, "", query, ""))
 
 
+# How much of a publisher's own standfirst to carry.
+#
+# 400 was cutting the good ones in half. Measured across the live feeds:
+# Patrika writes a median of 466 characters and up to 749, so its district
+# reporting was losing most of its substance; Amar Ujala (max 250), TV9 (max
+# 198) and Aaj Tak (median 261) sit comfortably under any of these numbers.
+#
+# The ceiling is deliberately not raised further. Bhaskar puts its *entire*
+# article in the RSS description - a median of 1,706 characters, ending in a
+# link to its own live blog - and carrying that would republish the article
+# rather than preview it, leaving a reader no reason to visit the publisher.
+# 800 keeps every real standfirst intact and takes only an opening portion of
+# the outliers.
+SUMMARY_LIMIT = 800
+
+# Sentence terminators, Devanagari danda included.
+_SENTENCE_END = re.compile(r"[।.!?]\s")
+
+
 def clean_text(raw: str | None, limit: int = 400) -> str:
     if not raw:
         return ""
     text = html.unescape(TAG_RE.sub(" ", raw))
     text = WS_RE.sub(" ", text).strip()
     return text[:limit]
+
+
+def clean_summary(raw: str | None) -> str:
+    """A standfirst, trimmed at a sentence boundary rather than mid-word.
+
+    Cutting a long description at a fixed character count leaves the reader
+    hanging on a half-written word, which reads as a bug. Prefer the last
+    complete sentence inside the budget; fall back to the hard cut only when
+    the text has no sentence break at all.
+    """
+    text = clean_text(raw, SUMMARY_LIMIT * 2)
+    if len(text) <= SUMMARY_LIMIT:
+        return text
+    window = text[:SUMMARY_LIMIT]
+    ends = list(_SENTENCE_END.finditer(window))
+    # Only honour a boundary that keeps most of the budget, or a one-sentence
+    # opener would collapse a long description to a single line.
+    if ends and ends[-1].end() >= SUMMARY_LIMIT * 0.6:
+        return window[: ends[-1].end()].strip()
+    return window.rstrip() + "\u2026"
 
 
 def _entry_image(entry) -> str | None:
@@ -108,7 +147,7 @@ def parse_feed(feed: Feed, body: bytes) -> list[Article]:
                 id=hashlib.sha1(place_key.encode("utf-8")).hexdigest(),
                 url=url,
                 title=title,
-                summary=clean_text(entry.get("summary") or entry.get("description")),
+                summary=clean_summary(entry.get("summary") or entry.get("description")),
                 image_url=_entry_image(entry),
                 published_at=published,
                 fetched_at=now,
